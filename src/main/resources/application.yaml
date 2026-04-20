@@ -8,9 +8,9 @@ spring:
     name: story
 
   datasource:
-    url: jdbc:postgresql://localhost:5432/story_db
-    username: postgres
-    password: 251103
+    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:story_db}
+    username: ${DB_USERNAME:postgres}
+    password: ${DB_PASSWORD}
     driver-class-name: org.postgresql.Driver
 
   jpa:
@@ -25,10 +25,10 @@ spring:
       write-dates-as-timestamps: false
 
   mail:
-    host: smtp.gmail.com
-    port: 587
-    username: cuongdo0168@gmail.com
-    password: bshn rfdp wpnb staj
+    host: ${MAIL_HOST:smtp.gmail.com}
+    port: ${MAIL_PORT:587}
+    username: ${MAIL_USERNAME}
+    password: ${MAIL_PASSWORD}
     properties:
       mail:
         smtp:
@@ -41,19 +41,19 @@ spring:
     oauth2:
       resource server:
         jwt:
-          issuer-uri: http://localhost:8090/realms/story-app
+          issuer-uri: ${KEYCLOAK_ISSUER_URI:http://localhost:8090/realms/story-app}
     client:
       registration:
         keycloak:
-          client-id: story-app
-          client-secret: EODZXA9la9FMug5ZTpJpNTKtdLVpU6N2
+          client-id: ${KEYCLOAK_CLIENT_ID:story-app}
+          client-secret: ${KEYCLOAK_CLIENT_SECRET}
           authorization-grant-type: authorization_code
           redirect-uri: "{baseUrl}/api/auth/google/callback"
           scope: openid,profile,email
 
       provider:
         keycloak:
-          issuer-uri: http://localhost:8090/realms/story-app
+          issuer-uri: ${KEYCLOAK_ISSUER_URI:http://localhost:8090/realms/story-app}
 
 camunda:
   bpm:
@@ -77,8 +77,8 @@ camunda:
       enabled: false
 
 idp:
-  url: http://localhost:8090
-  client-id: story-app
-  client-secret: EODZXA9la9FMug5ZTpJpNTKtdLVpU6N2
-  token-url: http://localhost:8090/realms/story-app/protocol/openid-connect/token
-  role-user-id: "3bf6a1cf-4660-4162-8ac9-925944c605cc"
+  url: ${IDP_URL:http://localhost:8090}
+  client-id: ${KEYCLOAK_CLIENT_ID:story-app}
+  client-secret: ${KEYCLOAK_CLIENT_SECRET}
+  token-url: ${IDP_TOKEN_URL:http://localhost:8090/realms/story-app/protocol/openid-connect/token}
+  role-user-id: ${IDP_ROLE_USER_ID:3bf6a1cf-4660-4162-8ac9-925944c605cc}
