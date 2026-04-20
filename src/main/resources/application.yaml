@@ -1,0 +1,84 @@
+server:
+  port: 8080
+  servlet:
+    context-path:
+
+spring:
+  application:
+    name: story
+
+  datasource:
+    url: jdbc:postgresql://localhost:5432/story_db
+    username: postgres
+    password: 251103
+    driver-class-name: org.postgresql.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: update
+    properties:
+      hibernate:
+        format_sql: true
+
+  jackson:
+    serialization:
+      write-dates-as-timestamps: false
+
+  mail:
+    host: smtp.gmail.com
+    port: 587
+    username: cuongdo0168@gmail.com
+    password: bshn rfdp wpnb staj
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+            required: true
+
+  security:
+    oauth2:
+      resource server:
+        jwt:
+          issuer-uri: http://localhost:8090/realms/story-app
+    client:
+      registration:
+        keycloak:
+          client-id: story-app
+          client-secret: EODZXA9la9FMug5ZTpJpNTKtdLVpU6N2
+          authorization-grant-type: authorization_code
+          redirect-uri: "{baseUrl}/api/auth/google/callback"
+          scope: openid,profile,email
+
+      provider:
+        keycloak:
+          issuer-uri: http://localhost:8090/realms/story-app
+
+camunda:
+  bpm:
+    database:
+      type: postgres
+      schema-update: true
+
+    admin-user:
+      id: demo
+      password: demo
+
+    auto-deployment-enabled: true
+
+    filter:
+      create: All tasks
+
+    history-level: full
+    history-time-to-live: 30
+
+    authorization:
+      enabled: false
+
+idp:
+  url: http://localhost:8090
+  client-id: story-app
+  client-secret: EODZXA9la9FMug5ZTpJpNTKtdLVpU6N2
+  token-url: http://localhost:8090/realms/story-app/protocol/openid-connect/token
+  role-user-id: "3bf6a1cf-4660-4162-8ac9-925944c605cc"
