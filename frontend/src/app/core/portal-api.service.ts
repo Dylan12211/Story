@@ -7,6 +7,8 @@ import {
   ApiEnvelope,
   ManagedUserPayload,
   ProfileResponse,
+  StoryEvent,
+  StoryEventType,
   StoryItem,
   UserManagementItem,
   WorkflowTask,
@@ -66,20 +68,31 @@ export class PortalApiService {
 
   async getTasks(): Promise<WorkflowTask[]> {
     const session = this.auth.session();
-    if (!session) return [];
+    if (!session) {
+      console.log('No session, returning empty tasks');
+      return [];
+    }
 
     // if (!session.roles.includes('ROLE_ADMIN')) {
     //   return [];
     // }
 
-    return firstValueFrom(
-      this.http.get<WorkflowTask[]>(`${this.apiBase}/api/workflow/tasks`, {
-        headers: this.auth.authHeaders()
-      })
-    );
+    try {
+      return firstValueFrom(
+        this.http.get<WorkflowTask[]>(`${this.apiBase}/api/workflow/tasks`, {
+          headers: this.auth.authHeaders()
+        })
+      );
+    } catch (error) {
+      console.error('Failed to get tasks:', error);
+      return [];
+    }
   }
 
   async getTaskDetail(taskId: string): Promise<WorkflowTaskDetail> {
+    if (!this.auth.session()) {
+      throw new Error('No active session. Please login again.');
+    }
     return firstValueFrom(
       this.http.get<WorkflowTaskDetail>(`${this.apiBase}/api/workflow/tasks/${taskId}`, {
         headers: this.auth.authHeaders()
@@ -88,6 +101,9 @@ export class PortalApiService {
   }
 
   async startWorkflow(title: string, content: string): Promise<string> {
+    if (!this.auth.session()) {
+      throw new Error('No active session. Please login again.');
+    }
     return firstValueFrom(
       this.http.post(
         `${this.apiBase}/api/workflow/start`,
@@ -201,5 +217,83 @@ export class PortalApiService {
       return error.message;
     }
     return fallback;
+  }
+
+  async testKafka(event: StoryEvent): Promise<string> {
+    return firstValueFrom(
+      this.http.post(
+        `${this.apiBase}/api/stories/kafka/test`,
+        event,
+        {
+          headers: this.auth.authHeaders(),
+          responseType: 'text'
+        }
+      )
+    );
+  }
+
+  async publishStoryCreated(event: StoryEvent): Promise<string> {
+    return firstValueFrom(
+      this.http.post(
+        `${this.apiBase}/api/stories/kafka/publish-created`,
+        event,
+        {
+          headers: this.auth.authHeaders(),
+          responseType: 'text'
+        }
+      )
+    );
+  }
+
+  async publishStorySubmitted(storyId: number, title: string, createdBy: string): Promise<string> {
+    return firstValueFrom(
+      this.http.post(
+        `${this.apiBase}/api/stories/kafka/publish-submitted`,
+        { storyId, title, createdBy },
+        {
+          headers: this.auth.authHeaders(),
+          responseType: 'text'
+        }
+      )
+    );
+  }
+
+  async publishStoryApproved(storyId: number, title: string, createdBy: string): Promise<string> {
+    return firstValueFrom(
+      this.http.post(
+        `${this.apiBase}/api/stories/kafka/publish-approved`,
+        { storyId, title, createdBy },
+        {
+          headers: this.auth.authHeaders(),
+          responseType: 'text'
+        }
+      )
+    );
+  }
+
+  async publishStoryRejected(storyId: number, title: string, createdBy: string, reason: string): Promise<string> {
+    return firstValueFrom(
+      this.http.post(
+        `${this.apiBase}/api/stories/kafka/publish-rejected`,
+        { storyId, title, createdBy, reason },
+        {
+          headers: this.auth.authHeaders(),
+          responseType: 'text'
+        }
+      )
+    );
+  }
+
+  async publishStoryPublished(storyId: number, title: string, createdBy: string): Promise<string> {
+    return firstValueFrom(
+      this.http.post(
+        `${this.apiBase}/api/stories/kafka/publish-published`,
+        { storyId, title, createdBy },
+        {
+          headers: this.auth.authHeaders(),
+          responseType: 'text'
+        }
+      )
+    );
   }
 }

@@ -62,7 +62,7 @@ import { NotificationWsService } from '../core/notification-ws.service';
                 </div>
 
                 <div class="notification-list" *ngIf="notificationsWs.notifications().length">
-                  <article class="notification-item" *ngFor="let item of notificationsWs.notifications()">
+                  <article class="notification-item" *ngFor="let item of notificationsWs.notifications()" (click)="handleNotificationClick(item)">
                     <strong>{{ item.title }}</strong>
                     <p>{{ item.message }}</p>
                     <small>{{ item.createdAt | date: 'dd/MM/yyyy HH:mm:ss' }}</small>
@@ -403,6 +403,13 @@ import { NotificationWsService } from '../core/notification-ws.service';
       border-radius: 16px;
       background: rgba(255, 253, 249, 0.95);
       border: 1px solid rgba(140, 121, 104, 0.14);
+      cursor: pointer;
+      transition: background 160ms ease, border-color 160ms ease;
+    }
+
+    .notification-item:hover {
+      background: rgba(255, 253, 249, 1);
+      border-color: rgba(140, 121, 104, 0.3);
     }
 
     .notification-item strong,
@@ -455,6 +462,13 @@ export class PortalShellComponent {
 
   clearNotifications(): void {
     this.notificationsWs.markAllAsRead();
+  }
+
+  handleNotificationClick(item: any): void {
+    // Navigate tới workflow page khi click vào notification
+    this.router.navigate(['/portal/workflow']);
+    // Đóng notification panel
+    this.showNotifications.set(false);
   }
 
 }

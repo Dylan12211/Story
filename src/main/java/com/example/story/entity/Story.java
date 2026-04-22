@@ -29,4 +29,7 @@ public class Story {
 
     @Column(name = "created_by", nullable = false)
     private String createdBy;
+
+    @Column(name = "reject_reason")
+    private String rejectReason;
 }

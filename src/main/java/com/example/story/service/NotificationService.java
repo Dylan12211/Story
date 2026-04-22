@@ -15,7 +15,7 @@ public class NotificationService {
     public NotificationService(SimpMessagingTemplate messagingTemplate) {
         this.messagingTemplate = messagingTemplate;
     }
-
+// NOTIFY TO USER
     public void notifyToUser(
             String username,
             String type,
@@ -37,6 +37,7 @@ public class NotificationService {
         messagingTemplate.convertAndSend("/topic/notifications/" + username, payload);
     }
 
+// NOTIFY TO ADMINS
     public void notifyAdmins(
             String type,
             String title,
@@ -57,6 +58,7 @@ public class NotificationService {
         messagingTemplate.convertAndSend("/topic/notifications/admins", payload);
     }
 
+// BROADCAST STORY UPDATE
     public void broadcastStoryUpdate(String type, String title, String message, Long storyId, String username) {
         TaskNotification notification = new TaskNotification(
                 type,
@@ -71,6 +73,7 @@ public class NotificationService {
         messagingTemplate.convertAndSend("/topic/stories", notification);
     }
 
+// BROADCAST TASK UPDATE
     public void broadcastTaskUpdate(String type, String title, String message, String taskId, String taskKey, String username) {
         TaskNotification notification = new TaskNotification(
                 type,

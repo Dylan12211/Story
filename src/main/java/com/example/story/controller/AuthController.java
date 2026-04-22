@@ -37,12 +37,14 @@ public class AuthController {
     @NonFinal
     String clientSecret;
 
+    // LOGIN
     @PostMapping("/login")
     public ResponseEntity<?> login(@RequestBody LoginRequest loginRequest) {
         String tokenResponse = loginService.login(loginRequest);
         return ResponseEntity.ok(tokenResponse);
     }
 
+    // GET USER
     @GetMapping("/users/{username}")
     public UserResponse getUser(@PathVariable String username) {
         return userService
@@ -52,12 +54,14 @@ public class AuthController {
                 .orElse(null);
     }
 
+    // VALIDATE LOGIN
     @PostMapping("/auth/validate")
     public ResponseEntity<Boolean> validateLogin(@RequestBody LoginRequest loginRequest) {
         boolean valid = userService.validateUser(loginRequest.getUsername(), loginRequest.getPassword());
         return ResponseEntity.ok(valid);
     }
 
+    // CREATE USER
     @PostMapping("/users")
     public ResponseEntity<UserResponse> createUser(@RequestBody CreateUserRequest request) {
         var user = userService.createUser(request.getUsername(), request.getEmail(), request.getPassword());
@@ -65,6 +69,7 @@ public class AuthController {
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
+    // UPDATE USER
     @PutMapping("/users/{username}")
     public ResponseEntity<UserResponse> updateUser(
             @PathVariable String username, @RequestBody UpdateUserRequest request) {
@@ -75,6 +80,7 @@ public class AuthController {
         return ResponseEntity.ok(response);
     }
 
+    // DELETE USER
     @DeleteMapping("/users/{username}")
     public ResponseEntity<Void> deleteUser(@PathVariable String username) {
         boolean deleted = userService.deleteUser(username);
@@ -83,6 +89,7 @@ public class AuthController {
                 : ResponseEntity.notFound().build();
     }
 
+    // UPDATE PASSWORD
     @PutMapping("/users/{username}/password")
     public ResponseEntity<Void> updatePassword(
             @PathVariable String username, @RequestBody UpdatePasswordRequest request) {
@@ -90,6 +97,7 @@ public class AuthController {
         return updated ? ResponseEntity.ok().build() : ResponseEntity.notFound().build();
     }
 
+    // ASSIGN ROLE
     @PostMapping("/admin/users/{username}/roles")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Void> assignRole(
@@ -99,10 +107,13 @@ public class AuthController {
         return ResponseEntity.ok().build();
     }
 
+    // GOOGLE LOGIN
     @GetMapping("auth/google/url")
     public String getGoogleLoginUrl() {
         return authService.buildGoogleLoginUrl();
     }
+
+    // GOOGLE CALLBACK
     @GetMapping("auth/google/callback")
     public ResponseEntity<?> googleCallback(@RequestParam String code) {
         return ResponseEntity.ok(authService.handleGoogleCallback(code));

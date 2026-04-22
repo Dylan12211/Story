@@ -55,6 +55,18 @@ spring:
         keycloak:
           issuer-uri: ${KEYCLOAK_ISSUER_URI:http://localhost:8090/realms/story-app}
 
+  kafka:
+    enabled: true
+    bootstrap-servers: localhost:9092
+    consumer:
+      group-id: story-service-group
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+
 camunda:
   bpm:
     database:
@@ -82,3 +94,4 @@ idp:
   client-secret: ${KEYCLOAK_CLIENT_SECRET}
   token-url: ${IDP_TOKEN_URL:http://localhost:8090/realms/story-app/protocol/openid-connect/token}
   role-user-id: ${IDP_ROLE_USER_ID:3bf6a1cf-4660-4162-8ac9-925944c605cc}
+

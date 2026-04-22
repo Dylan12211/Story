@@ -113,3 +113,23 @@ export interface TaskNotification {
   taskKey: string | null;
   createdAt: string;
 }
+
+export enum StoryEventType {
+  STORY_CREATED = 'STORY_CREATED',
+  STORY_UPDATED = 'STORY_UPDATED',
+  STORY_SUBMITTED = 'STORY_SUBMITTED',
+  STORY_APPROVED = 'STORY_APPROVED',
+  STORY_REJECTED = 'STORY_REJECTED',
+  STORY_PUBLISHED = 'STORY_PUBLISHED',
+  STORY_DELETED = 'STORY_DELETED'
+}
+
+export interface StoryEvent {
+  storyId?: number;
+  title?: string;
+  createdBy?: string;
+  status?: string;
+  eventType?: StoryEventType;
+  timestamp?: string;
+  message?: string;
+}

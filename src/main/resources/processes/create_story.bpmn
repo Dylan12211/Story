@@ -7,14 +7,16 @@
     <bpmn:laneSet id="LaneSet_1fpsw2l">
       <bpmn:lane id="Lane_0a591xz" name="System">
         <bpmn:flowNodeRef>sendRejectionEmail</bpmn:flowNodeRef>
-        <bpmn:flowNodeRef>sendApprovedEmail</bpmn:flowNodeRef>
-        <bpmn:flowNodeRef>updateStatusApproved</bpmn:flowNodeRef>
-        <bpmn:flowNodeRef>endApproved</bpmn:flowNodeRef>
-        <bpmn:flowNodeRef>sendNotificationReject</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>broadcastTaskCreated</bpmn:flowNodeRef>
         <bpmn:flowNodeRef>decisionGateway</bpmn:flowNodeRef>
-        <bpmn:flowNodeRef>sendNotificationRepairStory</bpmn:flowNodeRef>
-        <bpmn:flowNodeRef>sendNotificationApproved</bpmn:flowNodeRef>
         <bpmn:flowNodeRef>saveStory</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>sendNotificationApproved</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>updateStatusApproved</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>sendNotificationReject</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>endApproved</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>sendApprovedEmail</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>broadcastAdminReviewCreated</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>sendNotificationRepairStory</bpmn:flowNodeRef>
         <bpmn:childLaneSet id="LaneSet_1y0uarv" />
       </bpmn:lane>
       <bpmn:lane id="Lane_0ylhwp0" name="Admin">
@@ -34,22 +36,61 @@
       <bpmn:incoming>Flow_0rrwtk5</bpmn:incoming>
       <bpmn:outgoing>Flow_0aiw0wh</bpmn:outgoing>
     </bpmn:serviceTask>
+    <bpmn:serviceTask id="broadcastTaskCreated" name="Broadcast Task Created" camunda:class="com.example.story.workflow.BroadcastTaskCreatedDelegate">
+      <bpmn:incoming>Flow_0aiw0wh</bpmn:incoming>
+      <bpmn:outgoing>Flow_0new_broadcast</bpmn:outgoing>
+    </bpmn:serviceTask>
     <bpmn:startEvent id="StartEvent_1" name="Create Story">
       <bpmn:outgoing>Flow_1lb0lre</bpmn:outgoing>
     </bpmn:startEvent>
-    <bpmn:userTask id="adminReview" name="Admin Review" camunda:formKey="admin-review" camunda:candidateGroups="ROLE_ADMIN" camunda:dueDate="${dateTime().plusDays(2).toDate()}" camunda:priority="100">
+    <bpmn:exclusiveGateway id="decisionGateway" name="Approved?">
+      <bpmn:extensionElements />
+      <bpmn:incoming>Flow_0krrbzf</bpmn:incoming>
+      <bpmn:outgoing>Flow_0xo6yjf</bpmn:outgoing>
+      <bpmn:outgoing>Flow_1d84mr7</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:userTask id="repairStory" name="Repair Story" camunda:assignee="${author}">
+      <bpmn:incoming>Flow_0new_broadcast</bpmn:incoming>
+      <bpmn:outgoing>Flow_15u3tbg</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:sequenceFlow id="Flow_0rrwtk5" sourceRef="sendNotificationReject" targetRef="sendRejectionEmail" />
+    <bpmn:sequenceFlow id="Flow_0aiw0wh" sourceRef="sendRejectionEmail" targetRef="broadcastTaskCreated" />
+    <bpmn:sequenceFlow id="Flow_0new_broadcast" sourceRef="broadcastTaskCreated" targetRef="repairStory" />
+    <bpmn:sequenceFlow id="Flow_1lb0lre" sourceRef="StartEvent_1" targetRef="saveStory" />
+    <bpmn:sequenceFlow id="Flow_new_save_to_review" sourceRef="saveStory" targetRef="adminReview" />
+    <bpmn:sequenceFlow id="Flow_0broadcast_admin" sourceRef="sendNotificationRepairStory" targetRef="broadcastAdminReviewCreated" />
+    <bpmn:sequenceFlow id="Flow_00zv4yz" sourceRef="broadcastAdminReviewCreated" targetRef="adminReview" />
+    <bpmn:sequenceFlow id="Flow_0krrbzf" sourceRef="adminReview" targetRef="decisionGateway" />
+    <bpmn:sequenceFlow id="Flow_1juo9bn" sourceRef="updateStatusApproved" targetRef="sendApprovedEmail" />
+    <bpmn:sequenceFlow id="Flow_0iwznsz" sourceRef="sendApprovedEmail" targetRef="endApproved" />
+    <bpmn:sequenceFlow id="Flow_0xo6yjf" name="False" sourceRef="decisionGateway" targetRef="sendNotificationReject">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">${approved == false}</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_1d84mr7" name="True" sourceRef="decisionGateway" targetRef="sendNotificationApproved">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">${approved == true}</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_15u3tbg" sourceRef="repairStory" targetRef="sendNotificationRepairStory" />
+    <bpmn:sequenceFlow id="Flow_0fpm0rz" sourceRef="sendNotificationApproved" targetRef="updateStatusApproved" />
+    <bpmn:serviceTask id="saveStory" name="Save Story" camunda:class="com.example.story.workflow.SaveStoryDelegate">
+      <bpmn:extensionElements>
+        <camunda:inputOutput>
+          <camunda:inputParameter name="title">${title}</camunda:inputParameter>
+          <camunda:inputParameter name="content">${content}</camunda:inputParameter>
+          <camunda:inputParameter name="createdBy">${author}</camunda:inputParameter>
+          <camunda:outputParameter name="storyId">${storyId}</camunda:outputParameter>
+        </camunda:inputOutput>
+      </bpmn:extensionElements>
       <bpmn:incoming>Flow_1lb0lre</bpmn:incoming>
+      <bpmn:outgoing>Flow_new_save_to_review</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:userTask id="adminReview" name="Admin Review" camunda:formKey="admin-review" camunda:candidateGroups="ROLE_ADMIN" camunda:dueDate="${dateTime().plusDays(2).toDate()}" camunda:priority="100">
+      <bpmn:incoming>Flow_new_save_to_review</bpmn:incoming>
       <bpmn:incoming>Flow_00zv4yz</bpmn:incoming>
       <bpmn:outgoing>Flow_0krrbzf</bpmn:outgoing>
     </bpmn:userTask>
-    <bpmn:serviceTask id="sendApprovedEmail" name="Send Approved Email" camunda:class="com.example.story.workflow.SendEmailDelegate">
-      <bpmn:extensionElements>
-        <camunda:inputOutput>
-          <camunda:inputParameter name="emailType">APPROVED</camunda:inputParameter>
-        </camunda:inputOutput>
-      </bpmn:extensionElements>
-      <bpmn:incoming>Flow_1juo9bn</bpmn:incoming>
-      <bpmn:outgoing>Flow_0iwznsz</bpmn:outgoing>
+    <bpmn:serviceTask id="sendNotificationApproved" name="Send Notification Approved" camunda:class="com.example.story.workflow.SendNotificationApprovedDelegate">
+      <bpmn:incoming>Flow_1d84mr7</bpmn:incoming>
+      <bpmn:outgoing>Flow_0fpm0rz</bpmn:outgoing>
     </bpmn:serviceTask>
     <bpmn:serviceTask id="updateStatusApproved" name="Publish Story" camunda:class="com.example.story.workflow.UpdateStatusDelegate">
       <bpmn:extensionElements>
@@ -61,57 +102,29 @@
       <bpmn:incoming>Flow_0fpm0rz</bpmn:incoming>
       <bpmn:outgoing>Flow_1juo9bn</bpmn:outgoing>
     </bpmn:serviceTask>
-    <bpmn:endEvent id="endApproved" name="Story Published">
-      <bpmn:incoming>Flow_0iwznsz</bpmn:incoming>
-    </bpmn:endEvent>
     <bpmn:serviceTask id="sendNotificationReject" name="Send Notification Reject" camunda:class="com.example.story.workflow.SendNotificationRejectDelegate">
       <bpmn:incoming>Flow_0xo6yjf</bpmn:incoming>
       <bpmn:outgoing>Flow_0rrwtk5</bpmn:outgoing>
     </bpmn:serviceTask>
-    <bpmn:exclusiveGateway id="decisionGateway" name="Approved?">
-      <bpmn:extensionElements />
-      <bpmn:incoming>Flow_0krrbzf</bpmn:incoming>
-      <bpmn:outgoing>Flow_0xo6yjf</bpmn:outgoing>
-      <bpmn:outgoing>Flow_1d84mr7</bpmn:outgoing>
-    </bpmn:exclusiveGateway>
-    <bpmn:serviceTask id="sendNotificationRepairStory" name="Send Notification Repair Story" camunda:class="com.example.story.workflow.SendNotificationRepairStoryDelegate">
-      <bpmn:incoming>Flow_15u3tbg</bpmn:incoming>
-      <bpmn:outgoing>Flow_00zv4yz</bpmn:outgoing>
-    </bpmn:serviceTask>
-    <bpmn:userTask id="repairStory" name="Repair Story" camunda:assignee="${author}">
-      <bpmn:incoming>Flow_0aiw0wh</bpmn:incoming>
-      <bpmn:outgoing>Flow_15u3tbg</bpmn:outgoing>
-    </bpmn:userTask>
-    <bpmn:sequenceFlow id="Flow_0rrwtk5" sourceRef="sendNotificationReject" targetRef="sendRejectionEmail" />
-    <bpmn:sequenceFlow id="Flow_0aiw0wh" sourceRef="sendRejectionEmail" targetRef="repairStory" />
-    <bpmn:sequenceFlow id="Flow_1lb0lre" sourceRef="StartEvent_1" targetRef="adminReview" />
-    <bpmn:sequenceFlow id="Flow_00zv4yz" sourceRef="sendNotificationRepairStory" targetRef="adminReview" />
-    <bpmn:sequenceFlow id="Flow_0krrbzf" sourceRef="adminReview" targetRef="decisionGateway" />
-    <bpmn:sequenceFlow id="Flow_1juo9bn" sourceRef="updateStatusApproved" targetRef="sendApprovedEmail" />
-    <bpmn:sequenceFlow id="Flow_0iwznsz" sourceRef="sendApprovedEmail" targetRef="endApproved" />
-    <bpmn:sequenceFlow id="Flow_1g4eiy8" sourceRef="saveStory" targetRef="sendNotificationApproved" />
-    <bpmn:sequenceFlow id="Flow_0xo6yjf" sourceRef="decisionGateway" targetRef="sendNotificationReject">
-      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">${approved == false}</bpmn:conditionExpression>
-    </bpmn:sequenceFlow>
-    <bpmn:sequenceFlow id="Flow_1d84mr7" sourceRef="decisionGateway" targetRef="saveStory">
-      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">${approved == true}</bpmn:conditionExpression>
-    </bpmn:sequenceFlow>
-    <bpmn:sequenceFlow id="Flow_15u3tbg" sourceRef="repairStory" targetRef="sendNotificationRepairStory" />
-    <bpmn:serviceTask id="sendNotificationApproved" name="Send Notification Approved" camunda:class="com.example.story.workflow.SendNotificationApprovedDelegate">
-      <bpmn:incoming>Flow_1g4eiy8</bpmn:incoming>
-      <bpmn:outgoing>Flow_0fpm0rz</bpmn:outgoing>
-    </bpmn:serviceTask>
-    <bpmn:sequenceFlow id="Flow_0fpm0rz" sourceRef="sendNotificationApproved" targetRef="updateStatusApproved" />
-    <bpmn:serviceTask id="saveStory" name="Save Story" camunda:class="com.example.story.workflow.SaveStoryDelegate">
+    <bpmn:endEvent id="endApproved" name="Story Published">
+      <bpmn:incoming>Flow_0iwznsz</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:serviceTask id="sendApprovedEmail" name="Send Approved Email" camunda:class="com.example.story.workflow.SendEmailDelegate">
       <bpmn:extensionElements>
         <camunda:inputOutput>
-          <camunda:inputParameter name="title">${title}</camunda:inputParameter>
-          <camunda:inputParameter name="content">${content}</camunda:inputParameter>
-          <camunda:inputParameter name="createdBy">${author}</camunda:inputParameter>
+          <camunda:inputParameter name="emailType">APPROVED</camunda:inputParameter>
         </camunda:inputOutput>
       </bpmn:extensionElements>
-      <bpmn:incoming>Flow_1d84mr7</bpmn:incoming>
-      <bpmn:outgoing>Flow_1g4eiy8</bpmn:outgoing>
+      <bpmn:incoming>Flow_1juo9bn</bpmn:incoming>
+      <bpmn:outgoing>Flow_0iwznsz</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:serviceTask id="broadcastAdminReviewCreated" name="Broadcast Admin Review Created" camunda:class="com.example.story.workflow.BroadcastAdminReviewCreatedDelegate">
+      <bpmn:incoming>Flow_0broadcast_admin</bpmn:incoming>
+      <bpmn:outgoing>Flow_00zv4yz</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:serviceTask id="sendNotificationRepairStory" name="Send Notification Repair Story" camunda:class="com.example.story.workflow.SendNotificationRepairStoryDelegate">
+      <bpmn:incoming>Flow_15u3tbg</bpmn:incoming>
+      <bpmn:outgoing>Flow_0broadcast_admin</bpmn:outgoing>
     </bpmn:serviceTask>
   </bpmn:process>
   <bpmndi:BPMNDiagram id="BPMNDiagram_1">
@@ -119,20 +132,24 @@
       <bpmndi:BPMNShape id="Participant_0hd8khw_di" bpmnElement="Participant_0hd8khw" isHorizontal="true">
         <dc:Bounds x="-185" y="-134" width="2140" height="1017" />
       </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="Lane_0a591xz_di" bpmnElement="Lane_0a591xz" isHorizontal="true">
-        <dc:Bounds x="-155" y="113" width="2110" height="385" />
+      <bpmndi:BPMNShape id="Lane_1ceu3yu_di" bpmnElement="Lane_1ceu3yu" isHorizontal="true">
+        <dc:Bounds x="-155" y="-134" width="2110" height="247" />
         <bpmndi:BPMNLabel />
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="Lane_0ylhwp0_di" bpmnElement="Lane_0ylhwp0" isHorizontal="true">
         <dc:Bounds x="-155" y="498" width="2110" height="385" />
         <bpmndi:BPMNLabel />
       </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="Lane_1ceu3yu_di" bpmnElement="Lane_1ceu3yu" isHorizontal="true">
-        <dc:Bounds x="-155" y="-134" width="2110" height="247" />
+      <bpmndi:BPMNShape id="Lane_0a591xz_di" bpmnElement="Lane_0a591xz" isHorizontal="true">
+        <dc:Bounds x="-155" y="113" width="2110" height="385" />
         <bpmndi:BPMNLabel />
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="Activity_104foad_di" bpmnElement="sendRejectionEmail">
         <dc:Bounds x="1135" y="386" width="100" height="80" />
+        <bpmndi:BPMNLabel />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_broadcastTaskCreated_di" bpmnElement="broadcastTaskCreated">
+        <dc:Bounds x="1385" y="386" width="100" height="80" />
         <bpmndi:BPMNLabel />
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="StartEvent_1_di" bpmnElement="StartEvent_1">
@@ -141,65 +158,81 @@
           <dc:Bounds x="-56" y="11" width="63" height="14" />
         </bpmndi:BPMNLabel>
       </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="Activity_0l4jzmb_di" bpmnElement="adminReview">
-        <dc:Bounds x="265" y="606" width="100" height="80" />
-      </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="Activity_171pved_di" bpmnElement="sendApprovedEmail">
-        <dc:Bounds x="1245" y="196" width="100" height="80" />
-        <bpmndi:BPMNLabel />
-      </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="Activity_0u1n4z9_di" bpmnElement="updateStatusApproved">
-        <dc:Bounds x="1055" y="196" width="100" height="80" />
-        <bpmndi:BPMNLabel />
-      </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="Event_0l0ewof_di" bpmnElement="endApproved">
-        <dc:Bounds x="1397" y="218" width="36" height="36" />
-        <bpmndi:BPMNLabel>
-          <dc:Bounds x="1377" y="264" width="77" height="14" />
-        </bpmndi:BPMNLabel>
-      </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="Activity_1uq0pyv_di" bpmnElement="sendNotificationReject">
-        <dc:Bounds x="915" y="386" width="100" height="80" />
-        <bpmndi:BPMNLabel />
-      </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="Gateway_0u5bycz_di" bpmnElement="decisionGateway" isMarkerVisible="true">
         <dc:Bounds x="600" y="301" width="50" height="50" />
         <bpmndi:BPMNLabel>
           <dc:Bounds x="660" y="319" width="52" height="14" />
         </bpmndi:BPMNLabel>
       </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="Activity_0pgoj3h_di" bpmnElement="sendNotificationRepairStory">
-        <dc:Bounds x="265" y="216" width="100" height="80" />
-        <bpmndi:BPMNLabel />
-      </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="Activity_0rg2qc1_di" bpmnElement="repairStory">
         <dc:Bounds x="1655" y="-44" width="100" height="80" />
       </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_07dkuxx_di" bpmnElement="saveStory">
+        <dc:Bounds x="50" y="216" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_0l4jzmb_di" bpmnElement="adminReview">
+        <dc:Bounds x="265" y="586" width="100" height="80" />
+      </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="Activity_058kuoq_di" bpmnElement="sendNotificationApproved">
-        <dc:Bounds x="880" y="196" width="100" height="80" />
+        <dc:Bounds x="740" y="196" width="100" height="80" />
         <bpmndi:BPMNLabel />
       </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="Activity_07dkuxx_di" bpmnElement="saveStory">
-        <dc:Bounds x="700" y="196" width="100" height="80" />
+      <bpmndi:BPMNShape id="Activity_0u1n4z9_di" bpmnElement="updateStatusApproved">
+        <dc:Bounds x="1000" y="196" width="100" height="80" />
+        <bpmndi:BPMNLabel />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_1uq0pyv_di" bpmnElement="sendNotificationReject">
+        <dc:Bounds x="860" y="386" width="100" height="80" />
+        <bpmndi:BPMNLabel />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Event_0l0ewof_di" bpmnElement="endApproved">
+        <dc:Bounds x="1442" y="218" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1422" y="264" width="78" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_171pved_di" bpmnElement="sendApprovedEmail">
+        <dc:Bounds x="1260" y="196" width="100" height="80" />
+        <bpmndi:BPMNLabel />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_broadcastAdminReviewCreated_di" bpmnElement="broadcastAdminReviewCreated">
+        <dc:Bounds x="265" y="350" width="100" height="80" />
+        <bpmndi:BPMNLabel />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_0pgoj3h_di" bpmnElement="sendNotificationRepairStory">
+        <dc:Bounds x="265" y="180" width="100" height="80" />
+        <bpmndi:BPMNLabel />
       </bpmndi:BPMNShape>
       <bpmndi:BPMNEdge id="Flow_0rrwtk5_di" bpmnElement="Flow_0rrwtk5">
-        <di:waypoint x="1015" y="426" />
+        <di:waypoint x="960" y="426" />
         <di:waypoint x="1135" y="426" />
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Flow_0aiw0wh_di" bpmnElement="Flow_0aiw0wh">
         <di:waypoint x="1235" y="426" />
+        <di:waypoint x="1385" y="426" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_0new_broadcast_di" bpmnElement="Flow_0new_broadcast">
+        <di:waypoint x="1485" y="426" />
         <di:waypoint x="1705" y="426" />
         <di:waypoint x="1705" y="36" />
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Flow_1lb0lre_di" bpmnElement="Flow_1lb0lre">
         <di:waypoint x="-7" y="-14" />
-        <di:waypoint x="185" y="-14" />
-        <di:waypoint x="185" y="646" />
-        <di:waypoint x="255" y="646" />
+        <di:waypoint x="100" y="-14" />
+        <di:waypoint x="100" y="216" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_new_save_to_review_di" bpmnElement="Flow_new_save_to_review">
+        <di:waypoint x="100" y="296" />
+        <di:waypoint x="100" y="626" />
+        <di:waypoint x="265" y="626" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_0broadcast_admin_di" bpmnElement="Flow_0broadcast_admin">
+        <di:waypoint x="315" y="260" />
+        <di:waypoint x="315" y="350" />
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Flow_00zv4yz_di" bpmnElement="Flow_00zv4yz">
-        <di:waypoint x="315" y="296" />
-        <di:waypoint x="315" y="606" />
+        <di:waypoint x="315" y="430" />
+        <di:waypoint x="315" y="586" />
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Flow_0krrbzf_di" bpmnElement="Flow_0krrbzf">
         <di:waypoint x="365" y="626" />
@@ -208,35 +241,37 @@
         <di:waypoint x="600" y="326" />
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Flow_1juo9bn_di" bpmnElement="Flow_1juo9bn">
-        <di:waypoint x="1155" y="236" />
-        <di:waypoint x="1245" y="236" />
+        <di:waypoint x="1100" y="236" />
+        <di:waypoint x="1260" y="236" />
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Flow_0iwznsz_di" bpmnElement="Flow_0iwznsz">
-        <di:waypoint x="1345" y="236" />
-        <di:waypoint x="1397" y="236" />
-      </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge id="Flow_1g4eiy8_di" bpmnElement="Flow_1g4eiy8">
-        <di:waypoint x="800" y="236" />
-        <di:waypoint x="880" y="236" />
+        <di:waypoint x="1360" y="236" />
+        <di:waypoint x="1442" y="236" />
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Flow_0xo6yjf_di" bpmnElement="Flow_0xo6yjf">
         <di:waypoint x="625" y="351" />
         <di:waypoint x="625" y="426" />
-        <di:waypoint x="915" y="426" />
+        <di:waypoint x="860" y="426" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="706" y="403" width="27" height="14" />
+        </bpmndi:BPMNLabel>
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Flow_1d84mr7_di" bpmnElement="Flow_1d84mr7">
         <di:waypoint x="625" y="301" />
-        <di:waypoint x="625" y="242" />
-        <di:waypoint x="700" y="242" />
+        <di:waypoint x="625" y="236" />
+        <di:waypoint x="740" y="236" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="649" y="223" width="21" height="14" />
+        </bpmndi:BPMNLabel>
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Flow_15u3tbg_di" bpmnElement="Flow_15u3tbg">
         <di:waypoint x="1655" y="-4" />
         <di:waypoint x="315" y="-10" />
-        <di:waypoint x="315" y="216" />
+        <di:waypoint x="315" y="180" />
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Flow_0fpm0rz_di" bpmnElement="Flow_0fpm0rz">
-        <di:waypoint x="980" y="236" />
-        <di:waypoint x="1055" y="236" />
+        <di:waypoint x="840" y="236" />
+        <di:waypoint x="1000" y="236" />
       </bpmndi:BPMNEdge>
     </bpmndi:BPMNPlane>
   </bpmndi:BPMNDiagram>

@@ -25,6 +25,7 @@ public class WorkflowService {
     private final UserService userService;
     private final NotificationService notificationService;
 
+// GET CURRENT USER
     private String getCurrentUser() {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
 
@@ -83,6 +84,7 @@ public class WorkflowService {
                 );
     }
 
+// START PROCESS
     public String startProcess(Map<String, Object> request) {
         String username = getCurrentUser();
         String email = userService.getEmailByUsername(username);
@@ -117,6 +119,7 @@ public class WorkflowService {
         return "Process started";
     }
 
+// GET TASKS
     public List<Map<String, Object>> getTasks(String assignee, String group) {
         String username = getCurrentUser();
 
@@ -147,6 +150,23 @@ public class WorkflowService {
                         t.put("name", task.getName());
                         t.put("key", task.getTaskDefinitionKey());
                         t.put("assignee", task.getAssignee());
+
+                        // Status dựa trên task key
+                        String taskKey = task.getTaskDefinitionKey();
+                        String status;
+                        if ("repairStory".equals(taskKey)) {
+                            status = task.getAssignee() != null ? "WAITING_AUTHOR_REPAIR" : "PENDING_AUTHOR";
+                        } else if ("adminReview".equals(taskKey)) {
+                            status = task.getAssignee() != null ? "WAITING_ADMIN_REVIEW" : "PENDING_ADMIN";
+                        } else {
+                            status = task.getAssignee() != null ? "IN_PROGRESS" : "PENDING";
+                        }
+                        t.put("status", status);
+
+                        // Add variables for title and author
+                        Map<String, Object> variables = taskService.getVariables(task.getId());
+                        System.out.println("Task " + task.getId() + " variables: " + variables);
+                        t.put("variables", variables);
                         return t;
                     })
                     .toList();
@@ -161,11 +181,29 @@ public class WorkflowService {
                     t.put("name", task.getName());
                     t.put("key", task.getTaskDefinitionKey());
                     t.put("assignee", task.getAssignee());
+
+                    // Status dựa trên task key
+                    String taskKey = task.getTaskDefinitionKey();
+                    String status;
+                    if ("repairStory".equals(taskKey)) {
+                        status = task.getAssignee() != null ? "WAITING_AUTHOR_REPAIR" : "PENDING_AUTHOR";
+                    } else if ("adminReview".equals(taskKey)) {
+                        status = task.getAssignee() != null ? "WAITING_ADMIN_REVIEW" : "PENDING_ADMIN";
+                    } else {
+                        status = task.getAssignee() != null ? "IN_PROGRESS" : "PENDING";
+                    }
+                    t.put("status", status);
+
+                    // Add variables for title and author
+                    Map<String, Object> variables = taskService.getVariables(task.getId());
+                    System.out.println("Task " + task.getId() + " variables: " + variables);
+                    t.put("variables", variables);
                     return t;
                 })
                 .toList();
     }
 
+// COMPLETE TASK
     public String completeTask(String taskId, Map<String, Object> vars) {
         String userId = getCurrentUser();
 
@@ -212,17 +250,20 @@ public class WorkflowService {
         return "Complete thanh cong";
     }
 
+// GET TASK DETAIL
     public Map<String, Object> getTaskDetail(String taskId) {
         String username = getCurrentUser();
 
         Task task = taskService.createTaskQuery().taskId(taskId).singleResult();
 
         if (task == null) {
-            throw new RuntimeException("Task khong ton tai");
+            System.out.println("Task " + taskId + " không tồn tại");
+            return null;
         }
 
         if (!hasTaskAccess(task, username)) {
-            throw new RuntimeException("Ban khong co quyen xem task nay");
+            System.out.println("User " + username + " không có quyền xem task " + taskId);
+            return null;
         }
 
         Map<String, Object> res = new HashMap<>();
@@ -236,7 +277,8 @@ public class WorkflowService {
         return res;
     }
 
-    public String claimTask(String taskId) {
+// CLAIM TASK
+        public String claimTask(String taskId) {
         String userId = getCurrentUser();
 
         Task task = taskService.createTaskQuery().taskId(taskId).singleResult();

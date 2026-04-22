@@ -40,22 +40,24 @@ import { PortalApiService } from '../../core/portal-api.service';
         </form>
       </section>
 
-      <section class="card" *ngIf="hasTaskAccess()">
+      <section class="card">
         <p class="eyebrow">Task queue</p>
         <h3>Danh sach task</h3>
-        <div class="task-list" *ngIf="tasks().length; else noTasks">
+        <div class="task-list" *ngIf="filteredTasks().length; else noTasks">
           <button
             type="button"
             class="task-item"
-            *ngFor="let task of pagedTasks()"
+            *ngFor="let task of pagedFilteredTasks()"
             [class.active]="selectedTask()?.id === task.id"
             (click)="selectTask(task.id)"
           >
             <div>
-              <strong>{{ task.name }}</strong>
-              <span>{{ task.key }}</span>
+              <strong>{{ task.variables?.title || task.name }}</strong>
+              <span>{{ task.key === 'repairStory' ? 'Repair' : 'Review' }}</span>
             </div>
-            <small>{{ task.assignee || 'Candidate task' }}</small>
+            <small>{{ task.assignee || 'Unassigned' }}</small>
+            <small *ngIf="task.status" class="status">{{ getStatusText(task.status) }}</small>
+            <small *ngIf="task.variables?.author">by {{ task.variables.author }}</small>
           </button>
           <div class="pagination">
             <button (click)="prevTaskPage()">Prev</button>
@@ -65,7 +67,7 @@ import { PortalApiService } from '../../core/portal-api.service';
         </div>
       </section>
 
-      <section class="card" *ngIf="hasTaskAccess()">
+      <section class="card">
         <p class="eyebrow">Task detail</p>
         <h3>Inspector</h3>
         <div *ngIf="selectedTask() as task; else noSelectedTask" class="detail-panel">
@@ -118,6 +120,15 @@ import { PortalApiService } from '../../core/portal-api.service';
               <strong>{{ editorModel().title || 'Untitled story' }}</strong>
               <p>{{ editorModel().content || 'Chua co noi dung de preview.' }}</p>
             </div>
+            <label *ngIf="!editorModel().approved">
+              Ly do reject
+              <input
+                name="rejectReason"
+                [ngModel]="editorModel().rejectReason"
+                (ngModelChange)="updateEditorField('rejectReason', $event)"
+                placeholder="Nhap ly do reject..."
+              />
+            </label>
           </ng-template>
 
           <button
@@ -306,25 +317,63 @@ import { PortalApiService } from '../../core/portal-api.service';
     .task-item {
       width: 100%;
       text-align: left;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .task-item:hover {
+      border-color: rgba(208, 113, 67, 0.4);
+      background: rgba(255, 253, 249, 1);
+      transform: translateY(-2px);
+      box-shadow: 0 8px 20px rgba(48, 31, 19, 0.12);
     }
 
     .task-item.active {
-      border-color: rgba(208, 113, 67, 0.5);
-      box-shadow: inset 0 0 0 1px rgba(208, 113, 67, 0.18);
+      border-color: rgba(208, 113, 67, 0.6);
+      background: rgba(255, 253, 249, 1);
+      box-shadow: 0 8px 24px rgba(208, 113, 67, 0.2);
     }
 
-    .task-item div,
-    .item__header,
-    .detail-header {
+    .task-item div {
       display: flex;
-      justify-content: space-between;
-      gap: 0.8rem;
-      align-items: start;
+      flex-direction: column;
+      gap: 0.4rem;
+    }
+
+    .task-item strong {
+      font-size: 1rem;
+      color: #241b16;
+      font-weight: 600;
+    }
+
+    .task-item small {
+      font-size: 0.85rem;
+      color: #8b6f5a;
+      display: block;
+      margin-top: 0.2rem;
+    }
+
+    .task-item small:last-child {
+      color: #6f625a;
+      font-style: italic;
+    }
+
+    .task-item small.status {
+      color: #2f6b54;
+      font-weight: 600;
+      font-style: normal;
     }
 
     .task-item span {
-      display: block;
-      margin-top: 0.35rem;
+      display: inline-block;
+      font-size: 0.75rem;
+      color: #8f3b1e;
+      background: rgba(208, 113, 67, 0.1);
+      padding: 0.25rem 0.6rem;
+      border-radius: 8px;
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
     }
 
     .review-switch {
@@ -385,6 +434,7 @@ import { PortalApiService } from '../../core/portal-api.service';
 export class WorkflowPageComponent {
   private readonly api = inject(PortalApiService);
   private readonly auth = inject(AuthService);
+  private readonly ws = inject(NotificationWsService);
 
   readonly isAdmin = this.auth.isAdmin;
   readonly loading = signal(true);
@@ -392,22 +442,34 @@ export class WorkflowPageComponent {
   readonly error = signal('');
   readonly success = signal('');
   readonly stories = signal<any[]>([]);
-  readonly tasks = signal<any[]>([]);
+  readonly tasks = this.ws.tasks;
   readonly selectedTask = signal<any | null>(null);
   readonly createModel = signal({ title: '', content: '' });
-  readonly editorModel = signal({ title: '', content: '', approved: true });
+  readonly editorModel = signal({ title: '', content: '', approved: true, rejectReason: '' });
   readonly taskPage = signal(1);
   readonly storyPage = signal(1);
   readonly pageSize = 5;
-  readonly hasTaskAccess = computed(() => this.isAdmin() || this.tasks().length > 0);
-
-
-  private readonly ws = inject(NotificationWsService);
 
 
   readonly pagedTasks = computed(() => {
     const start = (this.taskPage() - 1) * this.pageSize;
     return this.tasks().slice(start, start + this.pageSize);
+  });
+
+  readonly filteredTasks = computed(() => {
+    const username = this.auth.session()?.username;
+    console.log('Computing filteredTasks, total tasks:', this.tasks().length);
+    console.log('Tasks:', this.tasks());
+    if (this.isAdmin()) {
+      return this.tasks(); // Admin thấy hết task
+    }
+    // User chỉ thấy task của mình
+    return this.tasks().filter(task => task.assignee === username || !task.assignee);
+  });
+
+  readonly pagedFilteredTasks = computed(() => {
+    const start = (this.taskPage() - 1) * this.pageSize;
+    return this.filteredTasks().slice(start, start + this.pageSize);
   });
 
   readonly pagedStories = computed(() => {
@@ -424,12 +486,18 @@ export class WorkflowPageComponent {
     void this.load();
     this.ws.connect();
 
-    effect(() => {
-      this.ws.taskUpdateTrigger();
-      void this.load();
-    });
+    // Tasks được update trực tiếp bởi ws.tasks qua WebSocket
+    // Reload stories khi storyUpdateTrigger thay đổi
     effect(() => {
       this.ws.storyUpdateTrigger();
+      void this.load();
+    });
+
+    // Force reload khi taskUpdateTrigger thay đổi để đảm bảo UI update
+    effect(() => {
+      const trigger = this.ws.taskUpdateTrigger();
+      console.log('taskUpdateTrigger changed:', trigger);
+      // Force reload stories vì story status có thể thay đổi khi task complete
       void this.load();
     });
   }
@@ -438,7 +506,7 @@ export class WorkflowPageComponent {
     this.createModel.update((state) => ({ ...state, [field]: value }));
   }
 
-  updateEditorField(field: 'title' | 'content', value: string): void {
+  updateEditorField(field: 'title' | 'content' | 'rejectReason', value: string): void {
     this.editorModel.update((state) => ({ ...state, [field]: value }));
   }
 
@@ -447,7 +515,7 @@ export class WorkflowPageComponent {
   }
 
   nextTaskPage() {
-    if (this.taskPage() * this.pageSize < this.tasks().length) {
+    if (this.taskPage() * this.pageSize < this.filteredTasks().length) {
       this.taskPage.update((p) => p + 1);
     }
   }
@@ -455,6 +523,25 @@ export class WorkflowPageComponent {
   prevTaskPage() {
     if (this.taskPage() > 1) {
       this.taskPage.update((p) => p - 1);
+    }
+  }
+
+  getStatusText(status: string): string {
+    switch (status) {
+      case 'WAITING_AUTHOR_REPAIR':
+        return 'Đang chờ tác giả sửa lại';
+      case 'WAITING_ADMIN_REVIEW':
+        return 'Đang chờ admin chấp nhận';
+      case 'PENDING_AUTHOR':
+        return 'Chờ tác giả claim';
+      case 'PENDING_ADMIN':
+        return 'Chờ admin claim';
+      case 'IN_PROGRESS':
+        return 'Đang xử lý';
+      case 'PENDING':
+        return 'Chờ xử lý';
+      default:
+        return status;
     }
   }
 
@@ -483,7 +570,7 @@ export class WorkflowPageComponent {
       ]);
 
       this.stories.set(stories);
-      this.tasks.set(tasks);
+      // Tasks giờ đến từ ws.tasks, không set ở đây để tránh overwrite WebSocket updates
 
       if (!tasks.some((task) => task.id === this.selectedTask()?.id)) {
         this.selectedTask.set(null);
@@ -516,11 +603,17 @@ export class WorkflowPageComponent {
   async selectTask(taskId: string): Promise<void> {
     try {
       const detail = await this.api.getTaskDetail(taskId);
+      if (!detail) {
+        this.selectedTask.set(null);
+        await this.ws.refreshTasks();
+        return;
+      }
       this.selectedTask.set(detail);
       this.editorModel.set({
         title: String(detail.variables['title'] ?? ''),
         content: String(detail.variables['content'] ?? ''),
-        approved: true
+        approved: true,
+        rejectReason: String(detail.variables['rejectReason'] ?? '')
       });
     } catch (error) {
       this.error.set(this.api.formatError(error, 'Khong tai duoc task detail.'));
@@ -537,7 +630,7 @@ export class WorkflowPageComponent {
     this.busy.set(true);
 
     const payload = this.canReview()
-      ? { approved: this.editorModel().approved }
+      ? { approved: this.editorModel().approved, rejectReason: this.editorModel().rejectReason }
       : { title: this.editorModel().title, content: this.editorModel().content };
 
     try {
@@ -575,7 +668,8 @@ export class WorkflowPageComponent {
       this.editorModel.set({
         title: String(updatedTask.variables['title'] ?? ''),
         content: String(updatedTask.variables['content'] ?? ''),
-        approved: true
+        approved: true,
+        rejectReason: String(updatedTask.variables['rejectReason'] ?? '')
       });
 
       this.success.set('Claim task thanh cong');

@@ -85,8 +85,12 @@ export class AuthService {
   }
 
   authHeaders(): HttpHeaders {
+    const token = this.session()?.accessToken;
+    if (!token) {
+      throw new Error('No active session. Please login again.');
+    }
     return new HttpHeaders({
-      Authorization: `Bearer ${this.session()?.accessToken ?? ''}`
+      Authorization: `Bearer ${token}`
     });
   }
 
