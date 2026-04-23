@@ -296,4 +296,20 @@ export class PortalApiService {
       )
     );
   }
+  async getUnreadNotifications(): Promise<any[]> {
+  return firstValueFrom(
+    this.http.get<any[]>(`${this.apiBase}/api/notifications/unread`, {
+      headers: this.auth.authHeaders()
+    })
+  );
+}
+
+async markNotificationAsRead(id: number): Promise<void> {
+  await firstValueFrom(
+    this.http.put(`${this.apiBase}/api/notifications/${id}/read`, {}, {
+      headers: this.auth.authHeaders()
+    })
+  );
+}
+  
 }

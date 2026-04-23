@@ -105,6 +105,7 @@ export interface KnowledgeSection {
 }
 
 export interface TaskNotification {
+  id: number | null;
   type: string;
   title: string;
   message: string;

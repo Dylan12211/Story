@@ -28,15 +28,15 @@ public class SendNotificationApprovedDelegate implements JavaDelegate {
         System.out.println("storyId = " + storyId);
         System.out.println("All variables: " + execution.getVariables());
 
-        // Gửi notification trực tiếp cho user
-        notificationService.notifyToUser(
-                author,
-                "APPROVED",
-                "Story đã được duyệt",
-                "Truyện '" + title + "' đã được publish.",
-                null,
-                "published"
-        );
+        // // Gửi notification trực tiếp cho user
+        // notificationService.notifyToUser(
+        //         author,
+        //         "APPROVED",
+        //         "Story đã được duyệt",
+        //         "Truyện '" + title + "' đã được publish.",
+        //         null,
+        //         "published"
+        // );
 
         // Gửi Kafka event cho logging/audit
         if (storyId != null) {

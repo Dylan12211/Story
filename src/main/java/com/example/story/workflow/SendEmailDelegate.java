@@ -1,5 +1,6 @@
 package com.example.story.workflow;
 
+import com.example.story.kafka.StoryProducer;
 import org.camunda.bpm.engine.delegate.DelegateExecution;
 import org.camunda.bpm.engine.delegate.JavaDelegate;
 import org.springframework.stereotype.Component;
@@ -16,6 +17,7 @@ import lombok.extern.slf4j.Slf4j;
 public class SendEmailDelegate implements JavaDelegate {
 
     private final EmailService emailService;
+    private final StoryProducer storyProducer;
 
     @Override
     public void execute(DelegateExecution execution) {
@@ -62,17 +64,14 @@ public class SendEmailDelegate implements JavaDelegate {
             log.info("Sending email to: {}", email);
             log.info("Subject: {}", subject);
 
-            emailService.sendEmail(email, subject, content);
+            // Gửi Kafka event thay vì gửi email trực tiếp
+            storyProducer.publishEmailEvent(email, subject, content, emailTypeStr,
+                    execution.getVariable("storyId") != null ? Long.valueOf(execution.getVariable("storyId").toString()) : null);
 
             log.info("Email sent SUCCESS");
 
         } catch (Exception e) {
             log.error("SendEmailDelegate ERROR", e);
-
-            // ⚠️ QUAN TRỌNG: nếu bạn không muốn 400
-            // thì KHÔNG throw nữa
-            // throw e;
-
         }
 
         log.info("=== SendEmailDelegate END ===");

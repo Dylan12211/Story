@@ -2,6 +2,8 @@ package com.example.story.service;
 
 import java.util.List;
 
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Sort;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.oauth2.jwt.Jwt;
@@ -34,6 +36,7 @@ public class StoryService {
         return authentication.getName();
     }
 
+    @Cacheable(value = "stories", key = "#authentication.name + ':all'")
     public List<Story> getStoriesForUser(Authentication authentication) {
         boolean isAdmin = authentication.getAuthorities().stream()
                 .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
@@ -50,6 +53,7 @@ public class StoryService {
         );
     }
 
+    @Cacheable(value = "story", key = "#id")
     public Story getStoryByIdForUser(Long id, Authentication authentication) {
         boolean isAdmin = authentication.getAuthorities().stream()
                 .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));

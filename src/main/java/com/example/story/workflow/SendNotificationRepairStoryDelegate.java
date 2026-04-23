@@ -25,17 +25,15 @@ public class SendNotificationRepairStoryDelegate implements JavaDelegate {
         System.out.println("All variables: " + execution.getVariables());
         System.out.println("Process variables: " + execution.getProcessInstance().getVariables());
 
-        notificationService.notifyAdmins(
-                "REPAIR_SUBMITTED",
-                "User da gui lai story",
-                "Truyen '" + title + "' da duoc sua va gui lai cho admin review.",
-                null,
-                "adminReview"
-        );
+        // notificationService.notifyAdmins(
+        //         "REPAIR_SUBMITTED",
+        //         "User da gui lai story",
+        //         "Truyen '" + title + "' da duoc sua va gui lai cho admin review.",
+        //         null,
+        //         "adminReview"
+        // );
         
-        // broadcastTaskUpdate đã được chuyển sang BroadcastAdminReviewCreatedDelegate
-        // để đảm bảo adminReview task được tạo trong Camunda trước khi gửi WebSocket message
-        
+    
         // Gửi Kafka event khi user gửi lại story
         Long storyId = (Long) execution.getVariable("storyId");
         storyProducer.publishStoryRepaired(storyId, title, (String) execution.getVariable("createdBy"));

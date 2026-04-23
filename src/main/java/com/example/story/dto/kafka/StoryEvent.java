@@ -21,6 +21,9 @@ public class StoryEvent {
     private StoryEventType eventType;
     private LocalDateTime timestamp;
     private String message;
+    private String taskId;
+    private String taskKey;
+    private String assignee;
 
     public enum StoryEventType {
         STORY_CREATED,
@@ -30,6 +33,9 @@ public class StoryEvent {
         STORY_REJECTED,
         STORY_PUBLISHED,
         STORY_REPAIRED,
-        STORY_DELETED
+        STORY_DELETED,
+        TASK_CREATED,
+        TASK_CLAIMED,
+        TASK_COMPLETED
     }
 }

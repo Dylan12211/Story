@@ -3,6 +3,7 @@ package com.example.story.workflow;
 import org.camunda.bpm.engine.delegate.DelegateExecution;
 import org.camunda.bpm.engine.delegate.JavaDelegate;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionSynchronization;
@@ -18,6 +19,7 @@ import lombok.RequiredArgsConstructor;
 
 @Component
 @RequiredArgsConstructor
+@CacheEvict(allEntries = true)
 public class SaveStoryDelegate implements JavaDelegate {
 
     private final StoryRepository storyRepository;
@@ -44,9 +46,15 @@ public class SaveStoryDelegate implements JavaDelegate {
 
         System.out.println("Saved story: " + story.getId());
 
-        // Gửi WebSocket notification khi tạo story mới
-        notificationService.broadcastStoryUpdate("STORY_CREATED", "Story mới được tạo",
-                "Truyện '" + title + "' đã được tạo và đang chờ review.", story.getId(), createdBy);
+        // Gửi notification cho author khi tạo story mới (lưu vào database)
+        notificationService.notifyToUser(
+                createdBy,
+                "STORY_CREATED",
+                "Story mới được tạo",
+                "Truyện '" + title + "' đã được tạo và đang chờ review.",
+                String.valueOf(story.getId()),
+                "STORY"
+        );
         
         // Gửi event Kafka sau khi transaction commit
         final Long storyId = story.getId();

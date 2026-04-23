@@ -5,9 +5,9 @@ import com.example.story.entity.Story;
 import com.example.story.entity.StoryStatus;
 import com.example.story.repository.StoryRepository;
 import com.example.story.service.NotificationService;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.kafka.support.KafkaHeaders;
 import org.springframework.messaging.handler.annotation.Header;
@@ -17,7 +17,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @ConditionalOnProperty(name = "spring.kafka.enabled", havingValue = "true", matchIfMissing = true)
-@Slf4j
 public class StoryConsumer {
     @Autowired
     private StoryRepository storyRepository;
@@ -32,8 +31,6 @@ public class StoryConsumer {
                                    @Header(KafkaHeaders.RECEIVED_TOPIC) String topic,
                                    @Header(KafkaHeaders.RECEIVED_PARTITION) int partition,
                                    @Header(KafkaHeaders.OFFSET) long offset) {
-        log.info("Received StoryEvent from topic: {}, partition: {}, offset: {}", topic, partition, offset);
-        log.info("StoryEvent details: {}", event);
 
         switch (event.getEventType()) {
             case STORY_CREATED:
@@ -48,21 +45,28 @@ public class StoryConsumer {
             case STORY_REPAIRED:
                 handleStoryRepaired(event);
                 break;
+            case TASK_CREATED:
+                handleTaskCreated(event);
+                break;
+            case TASK_CLAIMED:
+                handleTaskClaimed(event);
+                break;
+            case TASK_COMPLETED:
+                handleTaskCompleted(event);
+                break;
             default:
-                log.warn("Unknown event type: {}", event.getEventType());
         }
     }
 
     public void handleStoryCreated(StoryEvent event) {
-        log.info("Processing STORY_CREATED event for storyId: {}", event.getStoryId());
         notificationService.broadcastStoryUpdate("STORY_CREATED", "Story mới được tạo",
                 "Truyện '" + event.getTitle() + "' đã được tạo và đang chờ review.",
                 event.getStoryId(), event.getCreatedBy());
     }
 
     @Transactional
+    @CacheEvict(allEntries = true)
     public void handleStoryApproved(StoryEvent event) {
-        log.info("Processing STORY_APPROVED event for storyId: {}", event.getStoryId());
         try {
             Story story = storyRepository.findById(event.getStoryId())
                     .orElseThrow(() -> new RuntimeException("Story not found: " + event.getStoryId()));
@@ -78,13 +82,13 @@ public class StoryConsumer {
                     "published"
             );
         } catch (Exception e) {
-            log.error("Failed to process STORY_APPROVED for storyId {}: {}", event.getStoryId(), e.getMessage());
+            // Error handled silently
         }
     }
 
     @Transactional
+    @CacheEvict(allEntries = true)
     public void handleStoryRejected(StoryEvent event) {
-        log.info("Processing STORY_REJECTED event for storyId: {}, reason: {}", event.getStoryId(), event.getMessage());
         try {
             Story story = storyRepository.findById(event.getStoryId())
                     .orElseThrow(() -> new RuntimeException("Story not found: " + event.getStoryId()));
@@ -92,21 +96,19 @@ public class StoryConsumer {
             story.setRejectReason(event.getMessage());
             storyRepository.save(story);
 
-            // Notification đã được gửi bởi SendNotificationRejectDelegate trong workflow
-            // Không gửi lại ở đây để tránh trùng lặp
         } catch (Exception e) {
-            log.error("Failed to process STORY_REJECTED for storyId {}: {}", event.getStoryId(), e.getMessage());
+            // Error handled silently
         }
     }
 
     @Transactional
+    @CacheEvict(allEntries = true)
     public void handleStoryRepaired(StoryEvent event) {
-        log.info("Processing STORY_REPAIRED event for storyId: {}", event.getStoryId());
         try {
             Story story = storyRepository.findById(event.getStoryId())
                     .orElseThrow(() -> new RuntimeException("Story not found: " + event.getStoryId()));
             story.setStatus(StoryStatus.IN_REVIEW);
-            story.setRejectReason(null); // Clear reject reason khi user sửa
+            story.setRejectReason(null);
             storyRepository.save(story);
 
             notificationService.notifyAdmins(
@@ -117,7 +119,79 @@ public class StoryConsumer {
                     "adminReview"
             );
         } catch (Exception e) {
-            log.error("Failed to process STORY_REPAIRED for storyId {}: {}", event.getStoryId(), e.getMessage());
+            // Error handled silently
+        }
+    }
+
+    public void handleTaskCreated(StoryEvent event) {
+        // Gửi broadcast task update để frontend reload task list
+        notificationService.broadcastTaskUpdate(
+                "TASK_CREATED",
+                "Task mới được tạo",
+                "Task '" + event.getTaskKey() + "' đã được tạo.",
+                event.getTaskId(),
+                event.getTaskKey(),
+                event.getAssignee()
+        );
+
+        // Gửi notification private cho assignee
+        if (event.getAssignee() != null) {
+            notificationService.notifyToUser(
+                    event.getAssignee(),
+                    "TASK_CREATED",
+                    "Task mới được tạo",
+                    "Task '" + event.getTaskKey() + "' đã được tạo cho bạn.",
+                    event.getTaskId(),
+                    event.getTaskKey()
+            );
+        }
+    }
+
+    public void handleTaskClaimed(StoryEvent event) {
+        // Gửi broadcast task update để frontend reload task list
+        notificationService.broadcastTaskUpdate(
+                "TASK_CLAIMED",
+                "Task đã được claim",
+                "Task '" + event.getTaskKey() + "' đã được claim.",
+                event.getTaskId(),
+                event.getTaskKey(),
+                event.getAssignee()
+        );
+
+        // Gửi notification private cho assignee
+        if (event.getAssignee() != null) {
+            notificationService.notifyToUser(
+                    event.getAssignee(),
+                    "TASK_CLAIMED",
+                    "Task đã được claim",
+                    "Bạn đã claim task '" + event.getTaskKey() + "'.",
+                    event.getTaskId(),
+                    event.getTaskKey()
+            );
+        }
+    }
+
+    public void handleTaskCompleted(StoryEvent event) {
+        // Gửi broadcast task update để frontend reload task list
+        notificationService.broadcastTaskUpdate(
+                "TASK_COMPLETED",
+                "Task đã hoàn thành",
+                "Task '" + event.getTaskKey() + "' đã hoàn thành.",
+                event.getTaskId(),
+                event.getTaskKey(),
+                event.getAssignee()
+        );
+
+        // Gửi notification private cho assignee
+        if (event.getAssignee() != null) {
+            notificationService.notifyToUser(
+                    event.getAssignee(),
+                    "TASK_COMPLETED",
+                    "Task đã hoàn thành",
+                    "Task '" + event.getTaskKey() + "' đã hoàn thành.",
+                    event.getTaskId(),
+                    event.getTaskKey()
+            );
         }
     }
 }

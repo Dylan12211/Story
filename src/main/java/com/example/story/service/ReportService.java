@@ -10,6 +10,7 @@ import com.example.story.entity.Story;
 import com.example.story.repository.StoryRepository;
 import org.camunda.bpm.engine.TaskService;
 import org.camunda.bpm.engine.task.Task;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
@@ -34,12 +35,13 @@ public class ReportService {
         this.taskService = taskService;
     }
 
+    @Cacheable(value = "jasperReports", key = "'users:' + #type + ':' + #selectedColumns.hashCode()")
     public byte[] exportReport(String type, List<String> selectedColumns) throws Exception {
         List<UserInfo> userInfoList = userService.getAllUserInfo();
         List<UserRole> userRoleList = userService.getAllUserRoles();
 
         InputStream reportStream = getClass().getResourceAsStream("/Report/2_table.jrxml");
-        JasperReport jasperReport = JasperCompileManager.compileReport(reportStream);
+        JasperReport jasperReport = getCompiledReport(reportStream);
 
         Map<String, Object> parameters = new HashMap<>();
         parameters.put("SELECTED_COLUMNS", selectedColumns);
@@ -62,10 +64,11 @@ public class ReportService {
         }
     }
 
+    @Cacheable(value = "jasperReports", key = "'stories:' + #type + ':' + #selectedColumns.hashCode()")
     public byte[] exportStoryReport(String type, List<String> selectedColumns) throws Exception {
         List<Story> stories = storyRepository.findAll(Sort.by(Sort.Direction.DESC, "id"));
         InputStream reportStream = getClass().getResourceAsStream("/Report/story_report.jrxml");
-        JasperReport jasperReport = JasperCompileManager.compileReport(reportStream);
+        JasperReport jasperReport = getCompiledReport(reportStream);
 
         Map<String, Object> parameters = new HashMap<>();
         parameters.put("STORY_LIST", stories);
@@ -86,10 +89,11 @@ public class ReportService {
         throw new IllegalArgumentException("Unsupported type");
     }
 
+    @Cacheable(value = "jasperReports", key = "'tasks:' + #type + ':' + #selectedColumns.hashCode()")
     public byte[] exportTaskReport(String type, List<String> selectedColumns) throws Exception {
         List<Task> tasks = taskService.createTaskQuery().active().list();
         InputStream reportStream = getClass().getResourceAsStream("/Report/task_report.jrxml");
-        JasperReport jasperReport = JasperCompileManager.compileReport(reportStream);
+        JasperReport jasperReport = getCompiledReport(reportStream);
 
         Map<String, Object> parameters = new HashMap<>();
         parameters.put("TASK_LIST", tasks);
@@ -108,6 +112,10 @@ public class ReportService {
             return outputStream.toByteArray();
         }
         throw new IllegalArgumentException("Unsupported type");
+    }
+
+    private JasperReport getCompiledReport(InputStream reportStream) throws JRException {
+        return JasperCompileManager.compileReport(reportStream);
     }
 }
 

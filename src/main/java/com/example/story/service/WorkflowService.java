@@ -4,11 +4,14 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import com.example.story.kafka.StoryProducer;
 import org.camunda.bpm.engine.RuntimeService;
 import org.camunda.bpm.engine.TaskService;
 import org.camunda.bpm.engine.task.IdentityLink;
 import org.camunda.bpm.engine.task.Task;
 import org.camunda.bpm.engine.task.TaskQuery;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
@@ -24,6 +27,7 @@ public class WorkflowService {
     private final AuditService auditService;
     private final UserService userService;
     private final NotificationService notificationService;
+    private final StoryProducer storyProducer;
 
 // GET CURRENT USER
     private String getCurrentUser() {
@@ -221,24 +225,17 @@ public class WorkflowService {
             throw new RuntimeException("Khong phai nguoi duoc assign");
         }
 
-        // Gửi notification tới /topic/tasks để frontend reload
-        notificationService.broadcastTaskUpdate(
-                "TASK_COMPLETED",
-                "Task Completed",
-                "Task has been completed successfully",
-                taskId,
-                task.getTaskDefinitionKey(),
-                userId
-        );
+        // // Gửi notification tới /topic/tasks để frontend reload
+        // notificationService.broadcastTaskUpdate(
+        //         "TASK_COMPLETED",
+        //         "Task Completed",
+        //         "Task has been completed successfully",
+        //         taskId,
+        //         task.getTaskDefinitionKey(),
+        //         userId
+        // );
 
-        notificationService.notifyToUser(
-                userId,
-                "TASK_COMPLETED",
-                "Task Completed",
-                "Task has been completed successfully",
-                taskId,
-                task.getTaskDefinitionKey()
-        );
+
 
         Object approved = vars.get("approved");
         if (approved instanceof String) {
@@ -246,6 +243,11 @@ public class WorkflowService {
         }
 
         taskService.complete(taskId, vars);
+
+        // Gửi Kafka event
+        String title = (String) vars.get("title");
+        Long storyId = (Long) vars.get("storyId");
+        storyProducer.publishTaskCompleted(storyId, title, taskId, task.getTaskDefinitionKey(), userId);
 
         return "Complete thanh cong";
     }
@@ -278,7 +280,7 @@ public class WorkflowService {
     }
 
 // CLAIM TASK
-        public String claimTask(String taskId) {
+    public String claimTask(String taskId) {
         String userId = getCurrentUser();
 
         Task task = taskService.createTaskQuery().taskId(taskId).singleResult();
@@ -304,26 +306,24 @@ public class WorkflowService {
             throw new RuntimeException("Ban khong co quyen claim task nay");
         }
 
-        // Gửi notification tới /topic/tasks để frontend reload
-        notificationService.broadcastTaskUpdate(
-                "TASK_CLAIMED",
-                "Task Claimed",
-                "You have claimed this task",
-                taskId,
-                task.getTaskDefinitionKey(),
-                userId
-        );
+        // // Gửi notification tới /topic/tasks để frontend reload
+        // notificationService.broadcastTaskUpdate(
+        //         "TASK_CLAIMED",
+        //         "Task Claimed",
+        //         "You have claimed this task",
+        //         taskId,
+        //         task.getTaskDefinitionKey(),
+        //         userId
+        // );
 
-        notificationService.notifyToUser(
-                userId,
-                "TASK_CLAIMED",
-                "Task Claimed",
-                "You have claimed this task",
-                taskId,
-                task.getTaskDefinitionKey()
-        );
 
         taskService.claim(taskId, userId);
+
+        // Gửi Kafka event
+        Map<String, Object> vars = taskService.getVariables(taskId);
+        String title = (String) vars.get("title");
+        Long storyId = (Long) vars.get("storyId");
+        storyProducer.publishTaskClaimed(storyId, title, taskId, task.getTaskDefinitionKey(), userId);
 
         return "Claim thanh cong";
     }

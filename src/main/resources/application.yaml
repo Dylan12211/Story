@@ -3,6 +3,13 @@ server:
   servlet:
     context-path:
 
+logging:
+  level:
+    org.apache.kafka: WARN
+    org.apache.kafka.clients: WARN
+    org.camunda: WARN
+    org.camunda.bpm: WARN
+
 spring:
   application:
     name: story
@@ -66,6 +73,18 @@ spring:
     producer:
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
       value-serializer: org.apache.kafka.common.serialization.StringSerializer
+
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:}
+
+  cache:
+    type: redis
+    redis:
+      time-to-live: 600000
+      cache-null-values: false
 
 camunda:
   bpm:

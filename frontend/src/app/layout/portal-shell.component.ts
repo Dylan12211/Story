@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, computed, inject , signal} from '@angular/core';
+import { Component, computed, inject , signal, effect} from '@angular/core';
 import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { Router } from '@angular/router';
 import { AuthService } from '../core/auth.service';
@@ -54,7 +54,6 @@ import { NotificationWsService } from '../core/notification-ws.service';
               <div class="notification-panel" *ngIf="showNotifications()">
                 <div class="notification-panel__header">
                   <strong>Thong bao</strong>
-                  <button type="button" (click)="clearNotifications()">Danh dau da doc</button>
                 </div>
 
                 <div class="notification-panel__empty" *ngIf="!notificationsWs.notifications().length">
@@ -454,18 +453,28 @@ export class PortalShellComponent {
   constructor() {
     console.log('PortalShell init');
     this.notificationsWs.connect();
+    
+    // Reconnect WebSocket when session changes (login/logout)
+    effect(() => {
+      const session = this.auth.session();
+      if (session) {
+        console.log('Session detected, connecting WebSocket');
+        this.notificationsWs.connect();
+      } else {
+        console.log('No session, disconnecting WebSocket');
+        this.notificationsWs.disconnect();
+      }
+    });
   }
 
   toggleNotifications(): void {
     this.showNotifications.update((value) => !value);
   }
 
-  clearNotifications(): void {
-    this.notificationsWs.markAllAsRead();
-  }
-
   handleNotificationClick(item: any): void {
-    // Navigate tới workflow page khi click vào notification
+    // Đánh dấu đã đọc
+    this.notificationsWs.markAsRead(item.id);
+    // Navigate tới workflow page
     this.router.navigate(['/portal/workflow']);
     // Đóng notification panel
     this.showNotifications.set(false);
