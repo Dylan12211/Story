@@ -1,11 +1,11 @@
 package com.example.story.controller;
 
-import com.example.story.dto.request.ProfileUpdateRequest;
 import jakarta.validation.Valid;
 
 import org.springframework.web.bind.annotation.*;
 
 import com.example.story.dto.ApiResponse;
+import com.example.story.dto.request.ProfileUpdateRequest;
 import com.example.story.dto.request.RegistrationRequest;
 import com.example.story.dto.response.ProfileResponse;
 import com.example.story.service.ProfileService;
@@ -38,10 +38,9 @@ public class ProfileController {
                 .result(profileService.getMyProfile())
                 .build();
     }
+
     @PutMapping("/profile/me")
-    public ApiResponse<ProfileResponse> updateMyProfile(
-            @RequestBody @Valid ProfileUpdateRequest request
-    ) {
+    public ApiResponse<ProfileResponse> updateMyProfile(@RequestBody @Valid ProfileUpdateRequest request) {
         return ApiResponse.<ProfileResponse>builder()
                 .result(profileService.updateMyProfile(request))
                 .build();

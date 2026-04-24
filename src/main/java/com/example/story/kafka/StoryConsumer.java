@@ -1,10 +1,5 @@
 package com.example.story.kafka;
 
-import com.example.story.dto.kafka.StoryEvent;
-import com.example.story.entity.Story;
-import com.example.story.entity.StoryStatus;
-import com.example.story.repository.StoryRepository;
-import com.example.story.service.NotificationService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.cache.annotation.CacheEvict;
@@ -15,6 +10,12 @@ import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.example.story.dto.kafka.StoryEvent;
+import com.example.story.entity.Story;
+import com.example.story.entity.StoryStatus;
+import com.example.story.repository.StoryRepository;
+import com.example.story.service.NotificationService;
+
 @Service
 @ConditionalOnProperty(name = "spring.kafka.enabled", havingValue = "true", matchIfMissing = true)
 public class StoryConsumer {
@@ -24,13 +25,16 @@ public class StoryConsumer {
     @Autowired
     private NotificationService notificationService;
 
-    @KafkaListener(topics = "story-events", groupId = "story-service-group",
+    @KafkaListener(
+            topics = "story-events",
+            groupId = "story-service-group",
             containerFactory = "storyEventKafkaListenerContainerFactory")
     @Transactional
-    public void consumeStoryEvent(@Payload StoryEvent event,
-                                   @Header(KafkaHeaders.RECEIVED_TOPIC) String topic,
-                                   @Header(KafkaHeaders.RECEIVED_PARTITION) int partition,
-                                   @Header(KafkaHeaders.OFFSET) long offset) {
+    public void consumeStoryEvent(
+            @Payload StoryEvent event,
+            @Header(KafkaHeaders.RECEIVED_TOPIC) String topic,
+            @Header(KafkaHeaders.RECEIVED_PARTITION) int partition,
+            @Header(KafkaHeaders.OFFSET) long offset) {
 
         switch (event.getEventType()) {
             case STORY_CREATED:
@@ -59,16 +63,20 @@ public class StoryConsumer {
     }
 
     public void handleStoryCreated(StoryEvent event) {
-        notificationService.broadcastStoryUpdate("STORY_CREATED", "Story mới được tạo",
+        notificationService.broadcastStoryUpdate(
+                "STORY_CREATED",
+                "Story mới được tạo",
                 "Truyện '" + event.getTitle() + "' đã được tạo và đang chờ review.",
-                event.getStoryId(), event.getCreatedBy());
+                event.getStoryId(),
+                event.getCreatedBy());
     }
 
     @Transactional
     @CacheEvict(allEntries = true)
     public void handleStoryApproved(StoryEvent event) {
         try {
-            Story story = storyRepository.findById(event.getStoryId())
+            Story story = storyRepository
+                    .findById(event.getStoryId())
                     .orElseThrow(() -> new RuntimeException("Story not found: " + event.getStoryId()));
             story.setStatus(StoryStatus.PUBLISHED);
             storyRepository.save(story);
@@ -79,8 +87,7 @@ public class StoryConsumer {
                     "Story đã được duyệt",
                     "Truyện '" + event.getTitle() + "' đã được publish.",
                     null,
-                    "published"
-            );
+                    "published");
         } catch (Exception e) {
             // Error handled silently
         }
@@ -90,7 +97,8 @@ public class StoryConsumer {
     @CacheEvict(allEntries = true)
     public void handleStoryRejected(StoryEvent event) {
         try {
-            Story story = storyRepository.findById(event.getStoryId())
+            Story story = storyRepository
+                    .findById(event.getStoryId())
                     .orElseThrow(() -> new RuntimeException("Story not found: " + event.getStoryId()));
             story.setStatus(StoryStatus.DRAFT);
             story.setRejectReason(event.getMessage());
@@ -105,7 +113,8 @@ public class StoryConsumer {
     @CacheEvict(allEntries = true)
     public void handleStoryRepaired(StoryEvent event) {
         try {
-            Story story = storyRepository.findById(event.getStoryId())
+            Story story = storyRepository
+                    .findById(event.getStoryId())
                     .orElseThrow(() -> new RuntimeException("Story not found: " + event.getStoryId()));
             story.setStatus(StoryStatus.IN_REVIEW);
             story.setRejectReason(null);
@@ -116,8 +125,7 @@ public class StoryConsumer {
                     "User đã gửi lại story",
                     "Truyện '" + event.getTitle() + "' đã được sửa và gửi lại cho admin review.",
                     null,
-                    "adminReview"
-            );
+                    "adminReview");
         } catch (Exception e) {
             // Error handled silently
         }
@@ -131,8 +139,7 @@ public class StoryConsumer {
                 "Task '" + event.getTaskKey() + "' đã được tạo.",
                 event.getTaskId(),
                 event.getTaskKey(),
-                event.getAssignee()
-        );
+                event.getAssignee());
 
         // Gửi notification private cho assignee
         if (event.getAssignee() != null) {
@@ -142,8 +149,7 @@ public class StoryConsumer {
                     "Task mới được tạo",
                     "Task '" + event.getTaskKey() + "' đã được tạo cho bạn.",
                     event.getTaskId(),
-                    event.getTaskKey()
-            );
+                    event.getTaskKey());
         }
     }
 
@@ -155,8 +161,7 @@ public class StoryConsumer {
                 "Task '" + event.getTaskKey() + "' đã được claim.",
                 event.getTaskId(),
                 event.getTaskKey(),
-                event.getAssignee()
-        );
+                event.getAssignee());
 
         // Gửi notification private cho assignee
         if (event.getAssignee() != null) {
@@ -166,8 +171,7 @@ public class StoryConsumer {
                     "Task đã được claim",
                     "Bạn đã claim task '" + event.getTaskKey() + "'.",
                     event.getTaskId(),
-                    event.getTaskKey()
-            );
+                    event.getTaskKey());
         }
     }
 
@@ -179,8 +183,7 @@ public class StoryConsumer {
                 "Task '" + event.getTaskKey() + "' đã hoàn thành.",
                 event.getTaskId(),
                 event.getTaskKey(),
-                event.getAssignee()
-        );
+                event.getAssignee());
 
         // Gửi notification private cho assignee
         if (event.getAssignee() != null) {
@@ -190,8 +193,7 @@ public class StoryConsumer {
                     "Task đã hoàn thành",
                     "Task '" + event.getTaskKey() + "' đã hoàn thành.",
                     event.getTaskId(),
-                    event.getTaskKey()
-            );
+                    event.getTaskKey());
         }
     }
 }

@@ -1,5 +1,6 @@
 package com.example.story.dto.identity;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import com.fasterxml.jackson.databind.annotation.JsonNaming;
 
@@ -23,4 +24,7 @@ public class TokenExchangeResponse {
     String tokenType;
     String idToken;
     String scope;
+
+    @JsonProperty("not-before-policy")
+    String notBeforePolicy;
 }

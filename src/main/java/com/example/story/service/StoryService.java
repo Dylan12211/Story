@@ -2,7 +2,6 @@ package com.example.story.service;
 
 import java.util.List;
 
-import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Sort;
 import org.springframework.security.core.Authentication;
@@ -47,10 +46,7 @@ public class StoryService {
 
         String username = getCurrentUsername(authentication);
 
-        return storyRepository.findByCreatedBy(
-                username,
-                Sort.by(Sort.Direction.DESC, "id")
-        );
+        return storyRepository.findByCreatedBy(username, Sort.by(Sort.Direction.DESC, "id"));
     }
 
     @Cacheable(value = "story", key = "#id")
@@ -59,13 +55,13 @@ public class StoryService {
                 .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
 
         if (isAdmin) {
-            return storyRepository.findById(id)
-                    .orElseThrow(() -> new RuntimeException("Story not found"));
+            return storyRepository.findById(id).orElseThrow(() -> new RuntimeException("Story not found"));
         }
 
         String username = getCurrentUsername(authentication);
 
-        return storyRepository.findByIdAndCreatedBy(id, username)
+        return storyRepository
+                .findByIdAndCreatedBy(id, username)
                 .orElseThrow(() -> new RuntimeException("Story not found"));
     }
 }

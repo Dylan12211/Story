@@ -1,12 +1,14 @@
 package com.example.story.workflow;
 
-import com.example.story.kafka.StoryProducer;
-import com.example.story.service.NotificationService;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import org.camunda.bpm.engine.delegate.DelegateExecution;
 import org.camunda.bpm.engine.delegate.JavaDelegate;
 import org.springframework.stereotype.Component;
+
+import com.example.story.kafka.StoryProducer;
+import com.example.story.service.NotificationService;
+
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
 @Component
 @RequiredArgsConstructor
@@ -34,8 +36,7 @@ public class BroadcastTaskCreatedDelegate implements JavaDelegate {
                 "Story rejected, repair task created for user",
                 null,
                 "repairStory",
-                author
-        );
+                author);
 
         // Gửi Kafka event
         storyProducer.publishTaskCreated(storyId, title, null, "repairStory", author);

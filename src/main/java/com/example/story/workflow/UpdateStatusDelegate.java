@@ -12,7 +12,7 @@ import org.springframework.stereotype.Component;
  */
 @Component
 public class UpdateStatusDelegate implements JavaDelegate {
-    
+
     private static final Logger log = LoggerFactory.getLogger(UpdateStatusDelegate.class);
 
     @Override

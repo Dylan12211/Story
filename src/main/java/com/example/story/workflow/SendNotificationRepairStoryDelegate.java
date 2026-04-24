@@ -4,8 +4,8 @@ import org.camunda.bpm.engine.delegate.DelegateExecution;
 import org.camunda.bpm.engine.delegate.JavaDelegate;
 import org.springframework.stereotype.Component;
 
-import com.example.story.service.NotificationService;
 import com.example.story.kafka.StoryProducer;
+import com.example.story.service.NotificationService;
 
 import lombok.RequiredArgsConstructor;
 
@@ -18,24 +18,34 @@ public class SendNotificationRepairStoryDelegate implements JavaDelegate {
 
     @Override
     public void execute(DelegateExecution execution) {
+        String author = (String) execution.getVariable("author");
         String title = (String) execution.getVariable("title");
+        Long storyId = (Long) execution.getVariable("storyId");
+        String repairReason = (String) execution.getVariable("repairReason");
 
         System.out.println("=== SendNotificationRepairStoryDelegate START ===");
+        System.out.println("author = " + author);
         System.out.println("title = " + title);
+        System.out.println("storyId = " + storyId);
+        System.out.println("repairReason = " + repairReason);
         System.out.println("All variables: " + execution.getVariables());
-        System.out.println("Process variables: " + execution.getProcessInstance().getVariables());
 
-        // notificationService.notifyAdmins(
-        //         "REPAIR_SUBMITTED",
-        //         "User da gui lai story",
-        //         "Truyen '" + title + "' da duoc sua va gui lai cho admin review.",
-        //         null,
-        //         "adminReview"
-        // );
-        
-    
-        // Gửi Kafka event khi user gửi lại story
-        Long storyId = (Long) execution.getVariable("storyId");
-        storyProducer.publishStoryRepaired(storyId, title, (String) execution.getVariable("createdBy"));
+        // Gửi notification cho người tạo story
+        notificationService.notifyToUser(
+                author,
+                "NEED_REPAIR",
+                "Story cần sửa lại",
+                "Truyện '" + title + "' cần sửa lại. Lý do: " + repairReason,
+                String.valueOf(storyId),
+                "repair");
+
+        // Gửi Kafka event STORY_NEED_REPAIR
+        if (storyId != null) {
+            storyProducer.publishStoryNeedRepair(storyId, title, author, repairReason);
+        } else {
+            System.out.println("WARNING: storyId is null, skipping Kafka event");
+        }
+
+        System.out.println("=== SendNotificationRepairStoryDelegate END ===");
     }
 }

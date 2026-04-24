@@ -4,17 +4,16 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import com.example.story.kafka.StoryProducer;
 import org.camunda.bpm.engine.RuntimeService;
 import org.camunda.bpm.engine.TaskService;
 import org.camunda.bpm.engine.task.IdentityLink;
 import org.camunda.bpm.engine.task.Task;
 import org.camunda.bpm.engine.task.TaskQuery;
-import org.springframework.cache.annotation.CacheEvict;
-import org.springframework.cache.annotation.Cacheable;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
+
+import com.example.story.kafka.StoryProducer;
 
 import lombok.RequiredArgsConstructor;
 
@@ -29,7 +28,7 @@ public class WorkflowService {
     private final NotificationService notificationService;
     private final StoryProducer storyProducer;
 
-// GET CURRENT USER
+    // GET CURRENT USER
     private String getCurrentUser() {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
 
@@ -51,8 +50,7 @@ public class WorkflowService {
 
     private boolean isAdmin() {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        return auth.getAuthorities().stream()
-                .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
+        return auth.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
     }
 
     private boolean hasTaskAccess(Task task, String username) {
@@ -70,8 +68,7 @@ public class WorkflowService {
 
         List<IdentityLink> identityLinks = taskService.getIdentityLinksForTask(task.getId());
 
-        boolean isCandidateUser = identityLinks.stream()
-                .anyMatch(link -> username.equals(link.getUserId()));
+        boolean isCandidateUser = identityLinks.stream().anyMatch(link -> username.equals(link.getUserId()));
 
         if (isCandidateUser) {
             return true;
@@ -82,13 +79,11 @@ public class WorkflowService {
         return identityLinks.stream()
                 .map(IdentityLink::getGroupId)
                 .filter(groupId -> groupId != null && !groupId.isBlank())
-                .anyMatch(groupId ->
-                        auth.getAuthorities().stream()
-                                .anyMatch(a -> a.getAuthority().equals(groupId))
-                );
+                .anyMatch(groupId -> auth.getAuthorities().stream()
+                        .anyMatch(a -> a.getAuthority().equals(groupId)));
     }
 
-// START PROCESS
+    // START PROCESS
     public String startProcess(Map<String, Object> request) {
         String username = getCurrentUser();
         String email = userService.getEmailByUsername(username);
@@ -104,48 +99,35 @@ public class WorkflowService {
 
         // Gửi notification tới /topic/tasks để frontend reload
         notificationService.broadcastTaskUpdate(
-                "TASK_CREATED",
-                "New Task Created",
-                "A new story has been submitted for review",
-                null,
-                null,
-                username
-        );
+                "TASK_CREATED", "New Task Created", "A new story has been submitted for review", null, null, username);
 
         notificationService.notifyAdmins(
-                "TASK_CREATED",
-                "New Task Created",
-                "A new story has been submitted for review",
-                null,
-                null
-        );
+                "TASK_CREATED", "New Task Created", "A new story has been submitted for review", null, null);
         auditService.log(null, null, "START_PROCESS", "START", username, request);
         return "Process started";
     }
 
-// GET TASKS
+    // GET TASKS
     public List<Map<String, Object>> getTasks(String assignee, String group) {
         String username = getCurrentUser();
 
         TaskQuery query = taskService.createTaskQuery().active();
 
         if (isAdmin()) {
-            List<Task> candidateTasks = taskService.createTaskQuery()
+            List<Task> candidateTasks = taskService
+                    .createTaskQuery()
                     .active()
                     .taskCandidateGroup("ROLE_ADMIN")
                     .list();
 
-            List<Task> assignedTasks = taskService.createTaskQuery()
+            List<Task> assignedTasks = taskService
+                    .createTaskQuery()
                     .active()
                     .taskAssignee(username)
                     .list();
 
             return java.util.stream.Stream.concat(candidateTasks.stream(), assignedTasks.stream())
-                    .collect(java.util.stream.Collectors.toMap(
-                            Task::getId,
-                            task -> task,
-                            (left, right) -> left
-                    ))
+                    .collect(java.util.stream.Collectors.toMap(Task::getId, task -> task, (left, right) -> left))
                     .values()
                     .stream()
                     .map(task -> {
@@ -207,7 +189,7 @@ public class WorkflowService {
                 .toList();
     }
 
-// COMPLETE TASK
+    // COMPLETE TASK
     public String completeTask(String taskId, Map<String, Object> vars) {
         String userId = getCurrentUser();
 
@@ -235,8 +217,6 @@ public class WorkflowService {
         //         userId
         // );
 
-
-
         Object approved = vars.get("approved");
         if (approved instanceof String) {
             vars.put("approved", Boolean.parseBoolean((String) approved));
@@ -252,7 +232,7 @@ public class WorkflowService {
         return "Complete thanh cong";
     }
 
-// GET TASK DETAIL
+    // GET TASK DETAIL
     public Map<String, Object> getTaskDetail(String taskId) {
         String username = getCurrentUser();
 
@@ -279,7 +259,7 @@ public class WorkflowService {
         return res;
     }
 
-// CLAIM TASK
+    // CLAIM TASK
     public String claimTask(String taskId) {
         String userId = getCurrentUser();
 
@@ -298,8 +278,9 @@ public class WorkflowService {
                         return true;
                     }
 
-                    return groupId != null && SecurityContextHolder.getContext().getAuthentication().getAuthorities().stream()
-                            .anyMatch(a -> a.getAuthority().equals(groupId));
+                    return groupId != null
+                            && SecurityContextHolder.getContext().getAuthentication().getAuthorities().stream()
+                                    .anyMatch(a -> a.getAuthority().equals(groupId));
                 });
 
         if (!hasPermission) {
@@ -315,7 +296,6 @@ public class WorkflowService {
         //         task.getTaskDefinitionKey(),
         //         userId
         // );
-
 
         taskService.claim(taskId, userId);
 

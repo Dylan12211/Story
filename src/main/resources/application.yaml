@@ -109,6 +109,7 @@ camunda:
 
 idp:
   url: ${IDP_URL:http://localhost:8090}
+  realm: ${IDP_REALM:story-app}
   client-id: ${KEYCLOAK_CLIENT_ID:story-app}
   client-secret: ${KEYCLOAK_CLIENT_SECRET}
   token-url: ${IDP_TOKEN_URL:http://localhost:8090/realms/story-app/protocol/openid-connect/token}

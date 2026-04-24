@@ -1,11 +1,12 @@
 package com.example.story.controller;
 
-import com.example.story.dto.response.TaskNotification;
-import com.example.story.service.NotificationService;
+import java.util.List;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
+import com.example.story.dto.response.TaskNotification;
+import com.example.story.service.NotificationService;
 
 @RestController
 @RequestMapping("/api/notifications")
@@ -28,11 +29,13 @@ public class NotificationController {
 
     private String getCurrentUser() {
         // Lấy username từ JWT claims (preferred_username)
-        var auth = org.springframework.security.core.context.SecurityContextHolder
-                .getContext()
+        var auth = org.springframework.security.core.context.SecurityContextHolder.getContext()
                 .getAuthentication();
 
-        if (auth instanceof org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken jwtAuth) {
+        if (auth
+                instanceof
+                org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken
+                jwtAuth) {
             return jwtAuth.getToken().getClaimAsString("preferred_username");
         }
 

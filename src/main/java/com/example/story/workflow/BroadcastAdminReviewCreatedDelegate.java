@@ -1,12 +1,14 @@
 package com.example.story.workflow;
 
-import com.example.story.kafka.StoryProducer;
-import com.example.story.service.NotificationService;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import org.camunda.bpm.engine.delegate.DelegateExecution;
 import org.camunda.bpm.engine.delegate.JavaDelegate;
 import org.springframework.stereotype.Component;
+
+import com.example.story.kafka.StoryProducer;
+import com.example.story.service.NotificationService;
+
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
 @Component
 @RequiredArgsConstructor
@@ -33,8 +35,7 @@ public class BroadcastAdminReviewCreatedDelegate implements JavaDelegate {
                 "Story repaired, admin review task created",
                 null,
                 "adminReview",
-                null
-        );
+                null);
 
         // Gửi Kafka event cho admin users (không có assignee cụ thể)
         storyProducer.publishTaskCreated(storyId, title, null, "adminReview", null);

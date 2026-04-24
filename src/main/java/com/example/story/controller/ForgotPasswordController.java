@@ -23,7 +23,7 @@ public class ForgotPasswordController {
     @Value("${idp.url}")
     private String keycloakUrl;
 
-    @Value("${idp.client-id}")
+    @Value("${idp.realm}")
     private String realm;
 
     @Value("${idp.client-id}")
@@ -35,16 +35,22 @@ public class ForgotPasswordController {
     @PostMapping("/forgot-password")
     public ResponseEntity<String> forgotPassword(@RequestBody Map<String, String> body) {
         String email = body.get("email");
+        System.out.println("=== forgotPassword START ===");
+        System.out.println("Email: " + email);
+
         if (email == null || email.isEmpty()) {
             return ResponseEntity.badRequest().body("Email không được để trống");
         }
 
         try {
             // 1️⃣ Lấy access token admin
+            System.out.println("Getting admin token...");
             String token = getAdminToken();
+            System.out.println("Admin token obtained successfully");
 
             // 2️⃣ Lấy userId theo email
             String userSearchUrl = keycloakUrl + "/admin/realms/" + realm + "/users?email=" + email;
+            System.out.println("Searching user: " + userSearchUrl);
             HttpHeaders headers = new HttpHeaders();
             headers.setBearerAuth(token);
             headers.setContentType(MediaType.APPLICATION_JSON);
@@ -54,26 +60,41 @@ public class ForgotPasswordController {
             List<Map<String, Object>> users = response.getBody();
 
             if (users == null || users.isEmpty()) {
+                System.out.println("User not found");
                 return ResponseEntity.badRequest().body("Email không tồn tại");
             }
 
             String userId = (String) users.get(0).get("id");
+            System.out.println("User found: " + userId);
 
             // 3️⃣ Gọi execute-actions-email để gửi email reset
             String executeActionsUrl =
                     keycloakUrl + "/admin/realms/" + realm + "/users/" + userId + "/execute-actions-email";
+            System.out.println("Sending reset email: " + executeActionsUrl);
 
             HttpEntity<List<String>> actionEntity = new HttpEntity<>(List.of("UPDATE_PASSWORD"), headers);
 
             restTemplate.exchange(executeActionsUrl, HttpMethod.PUT, actionEntity, Void.class);
+            System.out.println("Reset email sent successfully");
 
             return ResponseEntity.ok("Email reset mật khẩu đã được gửi");
 
         } catch (HttpClientErrorException.Unauthorized e) {
+            System.out.println("Unauthorized error: " + e.getMessage());
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Không thể xác thực với Keycloak (401)");
         } catch (HttpClientErrorException.NotFound e) {
+            System.out.println("Not found error: " + e.getMessage());
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Không tìm thấy user trên Keycloak");
+        } catch (org.springframework.web.client.HttpServerErrorException e) {
+            String responseBody = e.getResponseBodyAsString();
+            System.out.println("Keycloak server error: " + responseBody);
+            if (responseBody != null && responseBody.contains("Failed to send execute actions email")) {
+                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                        .body("Keycloak không gửi được email. Vui lòng kiểm tra cấu hình SMTP trong Keycloak Admin Console → Realm Settings → Email Settings");
+            }
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Lỗi Keycloak: " + responseBody);
         } catch (Exception e) {
+            System.out.println("Exception: " + e.getMessage());
             e.printStackTrace();
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Lỗi hệ thống: " + e.getMessage());
         }

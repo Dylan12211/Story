@@ -10,6 +10,8 @@ import com.example.story.entity.Profile;
 @Repository
 public interface ProfileRepository extends JpaRepository<Profile, Long> {
     Optional<Profile> findByUser_Username(String username);
+
     Optional<Profile> findByUser_Email(String email);
+
     Optional<Profile> findByUser_Id(String userId);
 }

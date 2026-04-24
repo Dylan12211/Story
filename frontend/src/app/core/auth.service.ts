@@ -116,6 +116,7 @@ export class AuthService {
   }
   saveSessionFromToken(tokenResponse: any) {
     const accessToken = tokenResponse.access_token;
+    const refreshToken = tokenResponse.refresh_token;
     const idToken = tokenResponse.id_token;
 
     const claims = this.decodeJwt(accessToken);
@@ -126,12 +127,14 @@ export class AuthService {
       (role) => `ROLE_${role.toUpperCase()}`
     );
 
-    const session = {
+    const session: SessionState = {
       accessToken,
+      refreshToken,
       idToken,
       username: String(claims['preferred_username'] ?? ''),
       email: claims['email'] ? String(claims['email']) : undefined,
-      roles
+      roles,
+      provider: idToken ? 'GOOGLE' : 'LOCAL'
     };
 
     localStorage.setItem(this.storageKey, JSON.stringify(session));

@@ -1,4 +1,5 @@
 package com.example.story.dto.response;
+
 import java.time.LocalDateTime;
 
 public record TaskNotification(
@@ -9,6 +10,4 @@ public record TaskNotification(
         String username,
         String taskId,
         String taskKey,
-        LocalDateTime createdAt
-) {
-}
+        LocalDateTime createdAt) {}

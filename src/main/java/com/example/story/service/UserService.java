@@ -2,14 +2,16 @@ package com.example.story.service;
 
 import java.util.*;
 
-import com.example.story.dto.response.UserResponse;
 import jakarta.transaction.Transactional;
 
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import com.example.story.dto.identity.UserInfo;
 import com.example.story.dto.identity.UserRole;
+import com.example.story.dto.response.UserResponse;
 import com.example.story.entity.Profile;
 import com.example.story.entity.User;
 import com.example.story.repository.UserRepository;
@@ -24,11 +26,14 @@ public class UserService {
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
-    private final KeycloakService keycloakService;
 
     // --- Find user by username ---
     public Optional<User> findByUserName(String username) {
         return userRepository.findByUsername(username);
+    }
+
+    public Optional<User> findByUserId(String userId) {
+        return userRepository.findById(userId);
     }
 
     public List<UserInfo> getAllUserInfo() {
@@ -83,17 +88,6 @@ public class UserService {
 
         user.setProfile(profile);
         userRepository.save(user);
-
-        // --- Assign USER role in Keycloak ---
-        try {
-            String token = keycloakService.getAdminToken();
-            String userId = keycloakService.getUserIdByEmail(email, token);
-            keycloakService.assignRealmRole(userId, "USER", token);
-            log.info("Assigned USER role in Keycloak for {}", username);
-        } catch (Exception e) {
-            log.error("Failed to assign Keycloak role for user {}: {}", username, e.getMessage(), e);
-            throw new RuntimeException("Keycloak sync failed, rolling back", e);
-        }
     }
 
     // --- Create new user ---
@@ -111,19 +105,9 @@ public class UserService {
         user.setUsername(username);
         user.setEmail(email);
         user.setPassword(passwordEncoder.encode(password));
+        user.setRoles(new HashSet<>(Set.of("USER")));
 
         userRepository.save(user);
-
-        // --- Assign USER role in Keycloak ---
-        try {
-            String adminToken = keycloakService.getAdminToken();
-            String userId = keycloakService.getUserIdByEmail(email, adminToken);
-            keycloakService.assignRealmRole(userId, "USER", adminToken);
-            log.info("Assigned USER role in Keycloak for {}", username);
-        } catch (Exception e) {
-            log.error("Failed to assign Keycloak role for user {}: {}", username, e.getMessage(), e);
-            throw new RuntimeException("Keycloak role assignment failed, rolling back", e);
-        }
 
         return user;
     }
@@ -185,16 +169,7 @@ public class UserService {
     }
 
     public List<User> getUsersWithRole(String roleName) {
-        String token = keycloakService.getAdminToken();
-        List<Map<String, Object>> kcUsers = keycloakService.getUsersByRole(roleName, token);
-
-        List<User> users = new ArrayList<>();
-        for (Map<String, Object> kcUser : kcUsers) {
-            String email = (String) kcUser.get("email");
-            Optional<User> user = userRepository.findByEmail(email);
-            user.ifPresent(users::add);
-        }
-        return users;
+        return userRepository.findByRole(roleName);
     }
 
     public String getEmailByUsername(String username) {
@@ -206,7 +181,8 @@ public class UserService {
 
     @Transactional
     public void assignRole(String username, String role) {
-        User user = userRepository.findByUsername(username)
+        User user = userRepository
+                .findByUsername(username)
                 .orElseThrow(() -> new RuntimeException("User not found: " + username));
 
         if (user.getRoles() == null) {
@@ -216,13 +192,95 @@ public class UserService {
         user.getRoles().add(role);
         userRepository.save(user);
     }
+
+    // --- Update user attributes ---
+    @Transactional
+    public boolean updateAttributes(String username, Map<String, String> attributes) {
+        User user = userRepository
+                .findByUsername(username)
+                .orElseThrow(() -> new RuntimeException("User not found: " + username));
+
+        if (user.getProfile() == null) {
+            user.setProfile(new Profile());
+            user.getProfile().setUser(user);
+        }
+
+        Profile profile = user.getProfile();
+        if (attributes.containsKey("firstName")) {
+            profile.setFirstName(attributes.get("firstName"));
+        }
+        if (attributes.containsKey("lastName")) {
+            profile.setLastName(attributes.get("lastName"));
+        }
+        if (attributes.containsKey("email")) {
+            user.setEmail(attributes.get("email"));
+        }
+
+        userRepository.save(user);
+        return true;
+    }
+
+    // --- Get user roles ---
+    public Set<String> getUserRoles(String username) {
+        User user = userRepository
+                .findByUsername(username)
+                .orElseThrow(() -> new RuntimeException("User not found: " + username));
+        return user.getRoles() != null ? user.getRoles() : new HashSet<>();
+    }
+
     public UserResponse findByEmail(String email) {
-        return userRepository.findByEmail(email)
-                .map(user -> new UserResponse(
-                        user.getId(),
-                        user.getUsername(),
-                        user.getEmail()
-                ))
-                .orElse(null);
+        return userRepository.findByEmail(email).map(this::toUserResponse).orElse(null);
+    }
+
+    public List<UserResponse> searchUsers(String search, int first, int max) {
+        Pageable pageable = PageRequest.of(Math.max(first, 0) / Math.max(max, 1), Math.max(max, 1));
+        return userRepository.searchUsers(search, pageable).stream()
+                .map(this::toUserResponse)
+                .toList();
+    }
+
+    public long countUsers(String search) {
+        return userRepository.countUsers(search);
+    }
+
+    public List<UserResponse> findByAttribute(String attributeName, String attributeValue) {
+        if (attributeValue == null || attributeValue.isBlank()) {
+            return List.of();
+        }
+
+        return switch (attributeName) {
+            case "username" -> userRepository.findByUsername(attributeValue).map(this::toUserResponse).stream()
+                    .toList();
+            case "email" -> userRepository.findByEmail(attributeValue).map(this::toUserResponse).stream()
+                    .toList();
+            case "firstName", "lastName" -> userRepository.searchUsers(attributeValue, PageRequest.of(0, 50)).stream()
+                    .filter(user -> {
+                        Profile profile = user.getProfile();
+                        if (profile == null) {
+                            return false;
+                        }
+                        String candidate =
+                                "firstName".equals(attributeName) ? profile.getFirstName() : profile.getLastName();
+                        return attributeValue.equalsIgnoreCase(candidate);
+                    })
+                    .map(this::toUserResponse)
+                    .toList();
+            default -> List.of();
+        };
+    }
+
+    public UserResponse toUserResponse(User user) {
+        Profile profile = user.getProfile();
+        String firstName = profile != null ? profile.getFirstName() : null;
+        String lastName = profile != null ? profile.getLastName() : null;
+
+        return new UserResponse(
+                user.getId(),
+                user.getUsername(),
+                user.getEmail(),
+                firstName,
+                lastName,
+                user.getEmail() != null && !user.getEmail().isBlank(),
+                user.getRoles());
     }
 }

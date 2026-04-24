@@ -111,20 +111,20 @@
         <dependency>
             <groupId>org.keycloak</groupId>
             <artifactId>keycloak-server-spi</artifactId>
-            <version>24.0.2</version>
+            <version>26.5.4</version>
             <scope>provided</scope>
         </dependency>
         <!-- Source: https://mvnrepository.com/artifact/org.keycloak/keycloak-admin-client -->
         <dependency>
             <groupId>org.keycloak</groupId>
             <artifactId>keycloak-admin-client</artifactId>
-            <version>26.0.8</version>
+            <version>26.0.9</version>
             <scope>compile</scope>
         </dependency>
         <dependency>
             <groupId>org.keycloak</groupId>
             <artifactId>keycloak-server-spi-private</artifactId>
-            <version>24.0.2</version>
+            <version>26.5.4</version>
             <scope>provided</scope>
         </dependency>
         <dependency>

@@ -31,6 +31,7 @@ public class StoryEvent {
         STORY_SUBMITTED,
         STORY_APPROVED,
         STORY_REJECTED,
+        STORY_NEED_REPAIR,
         STORY_PUBLISHED,
         STORY_REPAIRED,
         STORY_DELETED,

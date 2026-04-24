@@ -4,8 +4,6 @@ import java.util.List;
 
 import jakarta.servlet.http.HttpServletResponse;
 
-import org.springframework.http.MediaType;
-import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import com.example.story.service.ReportService;
@@ -25,7 +23,8 @@ public class ReportController {
     public void exportUserReport(
             @RequestParam String type,
             @RequestParam(required = false) List<String> selectedColumns,
-            HttpServletResponse response) throws Exception {
+            HttpServletResponse response)
+            throws Exception {
 
         if (selectedColumns == null || selectedColumns.isEmpty()) {
             selectedColumns = List.of("userId", "username", "email", "firstName", "lastName", "status");
@@ -49,7 +48,8 @@ public class ReportController {
     public void exportStoryReport(
             @RequestParam String type,
             @RequestParam(required = false) List<String> selectedColumns,
-            HttpServletResponse response) throws Exception {
+            HttpServletResponse response)
+            throws Exception {
 
         if (selectedColumns == null || selectedColumns.isEmpty()) {
             selectedColumns = List.of("id", "title", "content", "status", "createdBy");
@@ -73,10 +73,20 @@ public class ReportController {
     public void exportTaskReport(
             @RequestParam String type,
             @RequestParam(required = false) List<String> selectedColumns,
-            HttpServletResponse response) throws Exception {
+            HttpServletResponse response)
+            throws Exception {
 
         if (selectedColumns == null || selectedColumns.isEmpty()) {
-            selectedColumns = List.of("id", "name", "description", "assignee", "createTime", "dueDate", "priority", "taskDefinitionKey", "processInstanceId");
+            selectedColumns = List.of(
+                    "id",
+                    "name",
+                    "description",
+                    "assignee",
+                    "createTime",
+                    "dueDate",
+                    "priority",
+                    "taskDefinitionKey",
+                    "processInstanceId");
         }
 
         byte[] file = reportService.exportTaskReport(type, selectedColumns);

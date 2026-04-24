@@ -1,14 +1,14 @@
 package com.example.story.configuration;
 
-import com.example.story.dto.kafka.EmailEvent;
-import com.example.story.dto.kafka.StoryEvent;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import java.util.HashMap;
+import java.util.Map;
+
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.apache.kafka.common.serialization.StringSerializer;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.kafka.annotation.EnableKafka;
@@ -17,10 +17,10 @@ import org.springframework.kafka.core.*;
 import org.springframework.kafka.support.serializer.JsonDeserializer;
 import org.springframework.kafka.support.serializer.JsonSerializer;
 
-import java.util.HashMap;
-import java.util.Map;
-
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import com.example.story.dto.kafka.EmailEvent;
+import com.example.story.dto.kafka.StoryEvent;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 
 @EnableKafka
 @ConditionalOnProperty(name = "spring.kafka.enabled", havingValue = "true", matchIfMissing = true)
@@ -50,8 +50,8 @@ public class KafkaConfig {
         configProps.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
         configProps.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class);
         configProps.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, JsonSerializer.class);
-        return new DefaultKafkaProducerFactory<>(configProps, new StringSerializer(),
-                new JsonSerializer<>(objectMapper));
+        return new DefaultKafkaProducerFactory<>(
+                configProps, new StringSerializer(), new JsonSerializer<>(objectMapper));
     }
 
     @Bean
@@ -78,8 +78,8 @@ public class KafkaConfig {
         props.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class);
         props.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, JsonDeserializer.class);
         props.put(JsonDeserializer.TRUSTED_PACKAGES, "*");
-        return new DefaultKafkaConsumerFactory<>(props, new StringDeserializer(),
-                new JsonDeserializer<>(StoryEvent.class, objectMapper, false));
+        return new DefaultKafkaConsumerFactory<>(
+                props, new StringDeserializer(), new JsonDeserializer<>(StoryEvent.class, objectMapper, false));
     }
 
     @Bean
@@ -113,8 +113,8 @@ public class KafkaConfig {
         configProps.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
         configProps.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class);
         configProps.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, JsonSerializer.class);
-        return new DefaultKafkaProducerFactory<>(configProps, new StringSerializer(),
-                new JsonSerializer<>(objectMapper));
+        return new DefaultKafkaProducerFactory<>(
+                configProps, new StringSerializer(), new JsonSerializer<>(objectMapper));
     }
 
     @Bean
@@ -132,8 +132,8 @@ public class KafkaConfig {
         props.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class);
         props.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, JsonDeserializer.class);
         props.put(JsonDeserializer.TRUSTED_PACKAGES, "*");
-        return new DefaultKafkaConsumerFactory<>(props, new StringDeserializer(),
-                new JsonDeserializer<>(EmailEvent.class, objectMapper, false));
+        return new DefaultKafkaConsumerFactory<>(
+                props, new StringDeserializer(), new JsonDeserializer<>(EmailEvent.class, objectMapper, false));
     }
 
     @Bean

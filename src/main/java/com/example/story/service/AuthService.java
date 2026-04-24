@@ -1,14 +1,17 @@
 package com.example.story.service;
 
-import com.example.story.entity.User;
-import com.example.story.repository.UserRepository;
-import lombok.RequiredArgsConstructor;
+import java.util.Map;
+import java.util.Set;
+
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.*;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
-import java.util.Map;
+import com.example.story.entity.User;
+import com.example.story.repository.UserRepository;
+
+import lombok.RequiredArgsConstructor;
 
 @Service
 @RequiredArgsConstructor
@@ -24,16 +27,17 @@ public class AuthService {
     @Value("${idp.client-secret}")
     private String clientSecret;
 
+    @Value("${idp.realm}")
+    private String realm;
+
     public String buildGoogleLoginUrl() {
-        return idpUrl + "/realms/story-app/protocol/openid-connect/auth"
+        return idpUrl + "/realms/" + realm + "/protocol/openid-connect/auth"
                 + "?client_id=" + clientId
                 + "&redirect_uri=http://localhost:4200/auth/google/callback"
                 + "&response_type=code"
                 + "&scope=openid profile email"
                 + "&kc_idp_hint=google";
     }
-
-
 
     private void createUserFromGoogle(String accessToken) {
         String email = getEmailFromUserInfo(accessToken);
@@ -45,13 +49,14 @@ public class AuthService {
         User user = User.builder()
                 .username(email)
                 .email(email)
+                .roles(Set.of("USER"))
                 .build();
 
         userRepository.save(user);
     }
 
     private String getEmailFromUserInfo(String accessToken) {
-        String userInfoUrl = idpUrl + "/realms/story-app/protocol/openid-connect/userinfo";
+        String userInfoUrl = idpUrl + "/realms/" + realm + "/protocol/openid-connect/userinfo";
 
         RestTemplate restTemplate = new RestTemplate();
 
@@ -60,12 +65,7 @@ public class AuthService {
 
         HttpEntity<?> entity = new HttpEntity<>(headers);
 
-        ResponseEntity<Map> response = restTemplate.exchange(
-                userInfoUrl,
-                HttpMethod.GET,
-                entity,
-                Map.class
-        );
+        ResponseEntity<Map> response = restTemplate.exchange(userInfoUrl, HttpMethod.GET, entity, Map.class);
 
         Map<String, Object> body = response.getBody();
 
@@ -74,7 +74,7 @@ public class AuthService {
 
     public Map<String, Object> handleGoogleCallback(String code) {
 
-        String tokenUrl = idpUrl + "/realms/story-app/protocol/openid-connect/token";
+        String tokenUrl = idpUrl + "/realms/" + realm + "/protocol/openid-connect/token";
 
         RestTemplate restTemplate = new RestTemplate();
 
@@ -89,12 +89,7 @@ public class AuthService {
 
         HttpEntity<String> request = new HttpEntity<>(body, headers);
 
-        ResponseEntity<Map> response = restTemplate.exchange(
-                tokenUrl,
-                HttpMethod.POST,
-                request,
-                Map.class
-        );
+        ResponseEntity<Map> response = restTemplate.exchange(tokenUrl, HttpMethod.POST, request, Map.class);
 
         Map<String, Object> token = response.getBody();
 
@@ -102,11 +97,9 @@ public class AuthService {
 
         String email = getEmailFromUserInfo(accessToken);
 
-
         if (userRepository.findByEmail(email).isEmpty()) {
             createUserFromGoogle(accessToken);
         }
-
 
         return token;
     }

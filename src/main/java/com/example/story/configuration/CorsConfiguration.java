@@ -18,7 +18,6 @@ public class CorsConfiguration {
         corsConfiguration.addAllowedHeader("*");
         corsConfiguration.setAllowCredentials(true);
 
-
         UrlBasedCorsConfigurationSource urlBasedCorsConfigurationSource = new UrlBasedCorsConfigurationSource();
         urlBasedCorsConfigurationSource.registerCorsConfiguration("/**", corsConfiguration);
 

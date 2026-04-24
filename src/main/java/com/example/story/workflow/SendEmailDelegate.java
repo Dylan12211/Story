@@ -1,11 +1,11 @@
 package com.example.story.workflow;
 
-import com.example.story.kafka.StoryProducer;
 import org.camunda.bpm.engine.delegate.DelegateExecution;
 import org.camunda.bpm.engine.delegate.JavaDelegate;
 import org.springframework.stereotype.Component;
 
 import com.example.story.entity.EmailType;
+import com.example.story.kafka.StoryProducer;
 import com.example.story.service.EmailService;
 
 import lombok.RequiredArgsConstructor;
@@ -65,8 +65,14 @@ public class SendEmailDelegate implements JavaDelegate {
             log.info("Subject: {}", subject);
 
             // Gửi Kafka event thay vì gửi email trực tiếp
-            storyProducer.publishEmailEvent(email, subject, content, emailTypeStr,
-                    execution.getVariable("storyId") != null ? Long.valueOf(execution.getVariable("storyId").toString()) : null);
+            storyProducer.publishEmailEvent(
+                    email,
+                    subject,
+                    content,
+                    emailTypeStr,
+                    execution.getVariable("storyId") != null
+                            ? Long.valueOf(execution.getVariable("storyId").toString())
+                            : null);
 
             log.info("Email sent SUCCESS");
 

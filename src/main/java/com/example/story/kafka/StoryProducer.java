@@ -1,14 +1,15 @@
 package com.example.story.kafka;
 
-import com.example.story.dto.kafka.EmailEvent;
-import com.example.story.dto.kafka.StoryEvent;
+import java.time.LocalDateTime;
+import java.util.concurrent.CompletableFuture;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.kafka.support.SendResult;
 import org.springframework.stereotype.Service;
 
-import java.time.LocalDateTime;
-import java.util.concurrent.CompletableFuture;
+import com.example.story.dto.kafka.EmailEvent;
+import com.example.story.dto.kafka.StoryEvent;
 
 @Service
 public class StoryProducer {
@@ -43,7 +44,8 @@ public class StoryProducer {
         sendStoryEvent("story-events", String.valueOf(storyId), event);
     }
     // Thêm method mới với key parameter
-    public CompletableFuture<SendResult<String, StoryEvent>> sendStoryEvent(String topic, String key, StoryEvent event) {
+    public CompletableFuture<SendResult<String, StoryEvent>> sendStoryEvent(
+            String topic, String key, StoryEvent event) {
         if (event.getTimestamp() == null) {
             event.setTimestamp(LocalDateTime.now());
         }
@@ -87,6 +89,18 @@ public class StoryProducer {
         sendStoryEvent("story-events", String.valueOf(storyId), event);
     }
 
+    public void publishStoryNeedRepair(Long storyId, String title, String createdBy, String reason) {
+        StoryEvent event = StoryEvent.builder()
+                .storyId(storyId)
+                .title(title)
+                .createdBy(createdBy)
+                .eventType(StoryEvent.StoryEventType.STORY_NEED_REPAIR)
+                .timestamp(LocalDateTime.now())
+                .message("Story needs repair: " + reason)
+                .build();
+        sendStoryEvent("story-events", String.valueOf(storyId), event);
+    }
+
     public void publishStoryPublished(Long storyId, String title, String createdBy) {
         StoryEvent event = StoryEvent.builder()
                 .storyId(storyId)
@@ -98,6 +112,7 @@ public class StoryProducer {
                 .build();
         sendStoryEvent("story-events", String.valueOf(storyId), event);
     }
+
     public void publishStoryRepaired(Long storyId, String title, String createdBy) {
         StoryEvent event = StoryEvent.builder()
                 .storyId(storyId)

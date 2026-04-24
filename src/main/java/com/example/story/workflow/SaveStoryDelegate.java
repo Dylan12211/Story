@@ -2,7 +2,6 @@ package com.example.story.workflow;
 
 import org.camunda.bpm.engine.delegate.DelegateExecution;
 import org.camunda.bpm.engine.delegate.JavaDelegate;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
@@ -11,15 +10,15 @@ import org.springframework.transaction.support.TransactionSynchronizationManager
 
 import com.example.story.entity.Story;
 import com.example.story.entity.StoryStatus;
+import com.example.story.kafka.StoryProducer;
 import com.example.story.repository.StoryRepository;
 import com.example.story.service.NotificationService;
-import com.example.story.kafka.StoryProducer;
 
 import lombok.RequiredArgsConstructor;
 
 @Component
 @RequiredArgsConstructor
-@CacheEvict(allEntries = true)
+@CacheEvict(value = "stories", allEntries = true)
 public class SaveStoryDelegate implements JavaDelegate {
 
     private final StoryRepository storyRepository;
@@ -53,14 +52,13 @@ public class SaveStoryDelegate implements JavaDelegate {
                 "Story mới được tạo",
                 "Truyện '" + title + "' đã được tạo và đang chờ review.",
                 String.valueOf(story.getId()),
-                "STORY"
-        );
-        
+                "STORY");
+
         // Gửi event Kafka sau khi transaction commit
         final Long storyId = story.getId();
         final String storyTitle = title;
         final String storyCreator = createdBy;
-        
+
         if (TransactionSynchronizationManager.isActualTransactionActive()) {
             TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
                 @Override

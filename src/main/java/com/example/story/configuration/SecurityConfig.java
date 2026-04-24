@@ -1,5 +1,6 @@
 package com.example.story.configuration;
 
+import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
@@ -42,17 +43,39 @@ public class SecurityConfig {
                 .hasRole("ADMIN")
                 .requestMatchers("/camunda/**")
                 .permitAll()
-//                              .requestMatchers("/api/reports/test").permitAll()
+                //                              .requestMatchers("/api/reports/test").permitAll()
                 .requestMatchers("/ws/**")
                 .permitAll()
                 .anyRequest()
                 .authenticated());
-        http.oauth2ResourceServer(oauth2 -> oauth2.jwt(
-                        jwtConfigurer -> jwtConfigurer.jwtAuthenticationConverter(jwtAuthenticationConverter()))
+        http.oauth2ResourceServer(oauth2 -> oauth2
+                .jwt(jwtConfigurer -> jwtConfigurer.jwtAuthenticationConverter(jwtAuthenticationConverter()))
                 .authenticationEntryPoint(new JwtAuthenticationEntryPoint()));
         http.csrf(AbstractHttpConfigurer::disable);
 
         return http.build();
+    }
+
+    @Bean
+    public SecurityFilterChain publicEndpointSecurityFilterChain(HttpSecurity http) throws Exception {
+        http.securityMatcher(request -> isPublicEndpoint(request))
+                .authorizeHttpRequests(auth -> auth.anyRequest().permitAll())
+                .csrf(AbstractHttpConfigurer::disable);
+
+        return http.build();
+    }
+
+    private boolean isPublicEndpoint(HttpServletRequest request) {
+        String path = request.getRequestURI();
+        String method = request.getMethod();
+        return path.equals("/register") && "POST".equals(method)
+                || path.startsWith("/api/users/")
+                || path.equals("/api/auth/validate")
+                || path.equals("/api/login")
+                || path.startsWith("/api/auth/google/")
+                || path.equals("/api/forgot-password") && "POST".equals(method)
+                || path.startsWith("/camunda/")
+                || path.startsWith("/ws/");
     }
 
     @Bean

@@ -1,11 +1,10 @@
 package com.example.story.controller;
 
-import com.example.story.service.AuthService;
-import jakarta.servlet.http.HttpServletResponse;
+import java.util.Map;
+
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.*;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.web.bind.annotation.*;
 
 import com.example.story.dto.request.CreateUserRequest;
@@ -13,15 +12,13 @@ import com.example.story.dto.request.LoginRequest;
 import com.example.story.dto.request.UpdatePasswordRequest;
 import com.example.story.dto.request.UpdateUserRequest;
 import com.example.story.dto.response.UserResponse;
+import com.example.story.service.AuthService;
 import com.example.story.service.LoginService;
 import com.example.story.service.UserService;
 
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.NonFinal;
 import lombok.extern.slf4j.Slf4j;
-
-import java.io.IOException;
-import java.util.Map;
 
 @RestController
 @RequestMapping("/api")
@@ -30,8 +27,7 @@ import java.util.Map;
 public class AuthController {
     private final UserService userService;
     private final LoginService loginService;
-    private final AuthService  authService;
-
+    private final AuthService authService;
 
     @Value("${idp.client-secret}")
     @NonFinal
@@ -45,12 +41,11 @@ public class AuthController {
     }
 
     // GET USER
-    @GetMapping("/users/{username}")
+    @GetMapping(value = "/users/{username}", produces = MediaType.APPLICATION_JSON_VALUE)
     public UserResponse getUser(@PathVariable String username) {
         return userService
                 .findByUserName(username)
-                .map(user -> new com.example.story.dto.response.UserResponse(
-                        user.getId().toString(), user.getUsername(), user.getEmail()))
+                .map(userService::toUserResponse)
                 .orElse(null);
     }
 
@@ -65,7 +60,7 @@ public class AuthController {
     @PostMapping("/users")
     public ResponseEntity<UserResponse> createUser(@RequestBody CreateUserRequest request) {
         var user = userService.createUser(request.getUsername(), request.getEmail(), request.getPassword());
-        UserResponse response = new UserResponse(user.getId().toString(), user.getUsername(), user.getEmail());
+        UserResponse response = userService.toUserResponse(user);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
@@ -75,8 +70,7 @@ public class AuthController {
             @PathVariable String username, @RequestBody UpdateUserRequest request) {
         var updatedUser = userService.updateUser(username, request.getEmail());
         if (updatedUser == null) return ResponseEntity.notFound().build();
-        UserResponse response =
-                new UserResponse(updatedUser.getId().toString(), updatedUser.getUsername(), updatedUser.getEmail());
+        UserResponse response = userService.toUserResponse(updatedUser);
         return ResponseEntity.ok(response);
     }
 
@@ -97,12 +91,25 @@ public class AuthController {
         return updated ? ResponseEntity.ok().build() : ResponseEntity.notFound().build();
     }
 
+    // UPDATE ATTRIBUTES
+    @PutMapping("/users/{username}/attributes")
+    public ResponseEntity<Void> updateAttributes(
+            @PathVariable String username, @RequestBody Map<String, String> attributes) {
+        boolean updated = userService.updateAttributes(username, attributes);
+        return updated ? ResponseEntity.ok().build() : ResponseEntity.notFound().build();
+    }
+
+    // GET USER ROLES
+    @GetMapping("/users/{username}/roles")
+    public ResponseEntity<java.util.Set<String>> getUserRoles(@PathVariable String username) {
+        java.util.Set<String> roles = userService.getUserRoles(username);
+        return ResponseEntity.ok(roles);
+    }
+
     // ASSIGN ROLE
     @PostMapping("/admin/users/{username}/roles")
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<Void> assignRole(
-            @PathVariable String username,
-            @RequestBody Map<String, String> request) {
+    public ResponseEntity<Void> assignRole(@PathVariable String username, @RequestBody Map<String, String> request) {
         userService.assignRole(username, request.get("role"));
         return ResponseEntity.ok().build();
     }
@@ -118,5 +125,4 @@ public class AuthController {
     public ResponseEntity<?> googleCallback(@RequestParam String code) {
         return ResponseEntity.ok(authService.handleGoogleCallback(code));
     }
-
 }
