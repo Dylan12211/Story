@@ -51,15 +51,24 @@ public class LoginService {
             ResponseEntity<String> response = restTemplate.postForEntity(tokenUrl, request, String.class);
             String responseBody = response.getBody();
 
-            log.info("Đăng nhập Keycloak thành công cho user: {}", loginRequest.getUsername());
+            log.info(
+                    "Đăng nhập Keycloak thành công cho user: {}, Status: {}",
+                    loginRequest.getUsername(),
+                    response.getStatusCode());
+
+            if (responseBody == null || responseBody.trim().isEmpty()) {
+                throw new RuntimeException("Keycloak trả về response rỗng");
+            }
 
             return responseBody; // Trả về JSON chứa access_token cho Controller
         } catch (HttpClientErrorException e) {
-            log.error("LỖI KEYCLOAK ({}): {}", e.getStatusCode(), e.getResponseBodyAsString());
-            throw e;
+            log.error(
+                    "LỖI KEYCLOAK ({}): {} - Body: {}", e.getStatusCode(), e.getMessage(), e.getResponseBodyAsString());
+            throw new RuntimeException("Lỗi xác thực Keycloak: " + e.getStatusCode());
         } catch (Exception e) {
-            log.error("Lỗi hệ thống khi xử lý đăng nhập: {}", e.getMessage());
-            throw new RuntimeException("Đăng nhập thất bại do lỗi hệ thống.");
+            log.error(
+                    "Lỗi hệ thống khi xử lý đăng nhập cho user {}: {}", loginRequest.getUsername(), e.getMessage(), e);
+            throw new RuntimeException("Đăng nhập thất bại do lỗi hệ thống: " + e.getMessage());
         }
     }
 }

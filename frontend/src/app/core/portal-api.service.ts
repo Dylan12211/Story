@@ -5,6 +5,7 @@ import { firstValueFrom } from 'rxjs';
 import { AuthService } from './auth.service';
 import {
   ApiEnvelope,
+  IdCardProfileResponse,
   ManagedUserPayload,
   ProfileResponse,
   StoryEvent,
@@ -36,6 +37,12 @@ export class PortalApiService {
     lastName: string;
     email: string;
     dob: string;
+    idNumber?: string;
+    gender?: string;
+    nationality?: string;
+    placeOfOrigin?: string;
+    placeOfResidence?: string;
+    dateOfExpiry?: string;
   }): Promise<ProfileResponse> {
     const response = await firstValueFrom(
       this.http.put<ApiEnvelope<ProfileResponse>>(
@@ -55,6 +62,23 @@ export class PortalApiService {
         headers: this.auth.authHeaders()
       })
     );
+    return response.result;
+  }
+
+  async scanIdCardProfile(file: File): Promise<IdCardProfileResponse> {
+    const formData = new FormData();
+    formData.append('idCardImage', file);
+
+    const response = await firstValueFrom(
+      this.http.post<ApiEnvelope<IdCardProfileResponse>>(
+        `${this.apiBase}/profile/me/id-card/scan`,
+        formData,
+        {
+          headers: this.auth.authHeaders()
+        }
+      )
+    );
+
     return response.result;
   }
 

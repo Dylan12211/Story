@@ -21,7 +21,7 @@ import { AuthService } from '../../core/auth.service';
 <!--          </p>-->
 
           <div class="tab-row">
-            <button type="button" [class.active]="activeTab() === 'login'" (click)="activeTab.set('login')">
+            <button type="button" [class.active]="activeTab() === 'login' || activeTab() === 'id-card'" (click)="switchToLogin()">
               Đăng nhập
             </button>
 
@@ -44,6 +44,7 @@ import { AuthService } from '../../core/auth.service';
           <p class="message error" *ngIf="error()">{{ error() }}</p>
           <p class="message success" *ngIf="success()">{{ success() }}</p>
 
+          <!-- NORMAL LOGIN FORM -->
           <form class="auth-form" *ngIf="activeTab() === 'login'" (ngSubmit)="login()">
             <label>
               Username
@@ -65,9 +66,48 @@ import { AuthService } from '../../core/auth.service';
             <button type="submit" [disabled]="busy()">{{ busy() ? 'Đang đăng nhập...' : 'Vào portal' }}</button>
             <div class="divider">Hoặc</div>
 
-            <button type="button" class="google-btn" (click)="loginWithGoogle()">
+            <!-- <button type="button" class="google-btn" (click)="loginWithGoogle()">
               Đăng nhập với Google
+            </button> -->
+
+            <button type="button" class="id-card-btn" (click)="switchToIdCard()">
+              📷 Đăng nhập bằng CCCD
             </button>
+          </form>
+
+          <!-- ID CARD LOGIN FORM -->
+          <form class="auth-form" *ngIf="activeTab() === 'id-card'" (ngSubmit)="loginWithIdCard()">
+            <button type="button" class="back-btn" (click)="switchToLogin()">
+              ← Quay lại đăng nhập
+            </button>
+
+            <div class="id-card-upload">
+              <label class="upload-area" [class.has-file]="selectedFile()">
+                <input
+                  type="file"
+                  accept="image/*"
+                  (change)="onIdCardSelected($event)"
+                  style="display: none;"
+                />
+                <div class="upload-placeholder" *ngIf="!selectedFile()">
+                  <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                    <polyline points="17 8 12 3 7 8"/>
+                    <line x1="12" y1="3" x2="12" y2="15"/>
+                  </svg>
+                  <p>Chọn ảnh CCCD để đăng nhập</p>
+                  <small>Hỗ trợ: JPG, PNG</small>
+                </div>
+                <div class="file-preview" *ngIf="selectedFile()">
+                  <p>📷 {{ selectedFile()?.name }}</p>
+                  <small>Nhấn để chọn ảnh khác</small>
+                </div>
+              </label>
+            </div>
+            <button type="submit" [disabled]="busy() || !selectedFile()">
+              {{ busy() ? 'Đang xử lý...' : 'Đăng nhập bằng CCCD' }}
+            </button>
+            <p class="hint">Hệ thống sẽ tự động nhận diện thông tin từ thẻ CCCD của bạn</p>
           </form>
 
           <form class="auth-form auth-form--grid" *ngIf="activeTab() === 'register'" (ngSubmit)="register()">
@@ -375,16 +415,110 @@ import { AuthService } from '../../core/auth.service';
         grid-template-columns: 1fr;
       }
     }
+
+    /* ID Card Button */
+    .id-card-btn {
+      background: linear-gradient(135deg, #2f6b54, #3f8766) !important;
+      color: #fff8f2;
+    }
+
+    .id-card-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(47, 107, 84, 0.3);
+    }
+
+    /* Back Button */
+    .back-btn {
+      background: transparent !important;
+      border: 1px solid rgba(140, 121, 104, 0.4) !important;
+      color: #6f625a !important;
+      padding: 0.6rem 1rem !important;
+      font-size: 0.9rem;
+    }
+
+    .back-btn:hover {
+      background: rgba(140, 121, 104, 0.1) !important;
+    }
+
+    /* ID Card Upload Styles */
+    .id-card-upload {
+      margin: 0.5rem 0;
+    }
+
+    .upload-area {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 2rem;
+      border: 2px dashed rgba(140, 121, 104, 0.3);
+      border-radius: 16px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      background: rgba(255, 253, 249, 0.6);
+      min-height: 180px;
+    }
+
+    .upload-area:hover {
+      border-color: rgba(208, 113, 67, 0.5);
+      background: rgba(255, 253, 249, 0.9);
+    }
+
+    .upload-area.has-file {
+      border-color: rgba(63, 135, 102, 0.5);
+      background: rgba(63, 135, 102, 0.08);
+    }
+
+    .upload-placeholder {
+      text-align: center;
+      color: #8b6f5a;
+    }
+
+    .upload-placeholder svg {
+      margin-bottom: 1rem;
+      opacity: 0.6;
+    }
+
+    .upload-placeholder p {
+      margin: 0.5rem 0;
+      font-weight: 500;
+    }
+
+    .upload-placeholder small {
+      color: #a09080;
+    }
+
+    .file-preview {
+      text-align: center;
+    }
+
+    .file-preview p {
+      margin: 0.5rem 0;
+      font-weight: 500;
+      color: #2f6b54;
+    }
+
+    .file-preview small {
+      color: #6f625a;
+    }
+
+    .hint {
+      text-align: center;
+      font-size: 0.85rem;
+      color: #8b6f5a;
+      margin: 0.5rem 0 0;
+    }
   `]
 })
 export class AuthPageComponent {
   private readonly auth = inject(AuthService);
   private readonly router = inject(Router);
 
-  readonly activeTab = signal<'login' | 'register' | 'forgot'>('login');
+  readonly activeTab = signal<'login' | 'register' | 'forgot' | 'id-card'>('login');
   readonly busy = signal(false);
   readonly error = signal('');
   readonly success = signal('');
+  readonly selectedFile = signal<File | null>(null);
 
   readonly loginModel = signal({ username: '', password: '' });
   readonly registerModel = signal({
@@ -461,6 +595,61 @@ export class AuthPageComponent {
       window.location.href = url;
     } catch {
       this.error.set('Không thể kết nối Google login');
+    }
+  }
+
+  switchToIdCard(): void {
+    this.activeTab.set('id-card');
+    this.error.set('');
+    this.success.set('');
+  }
+
+  switchToLogin(): void {
+    this.activeTab.set('login');
+    this.selectedFile.set(null);
+    this.error.set('');
+    this.success.set('');
+  }
+
+  onIdCardSelected(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    if (input.files && input.files.length > 0) {
+      this.selectedFile.set(input.files[0]);
+      this.error.set('');
+    }
+  }
+
+  async loginWithIdCard(): Promise<void> {
+    if (!this.selectedFile()) {
+      this.error.set('Vui lòng chọn ảnh CCCD');
+      return;
+    }
+
+    this.error.set('');
+    this.success.set('');
+    this.busy.set(true);
+
+    try {
+      const formData = new FormData();
+      formData.append('idCardImage', this.selectedFile()!);
+
+      const response = await fetch('http://localhost:8080/api/auth/id-card-login', {
+        method: 'POST',
+        body: formData
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(errorText || 'Đăng nhập bằng CCCD thất bại');
+      }
+
+      const tokenResponse = await response.text();
+      this.auth.saveSessionFromTokenResponse(tokenResponse);
+      await this.router.navigate(['/portal/dashboard']);
+    } catch (error) {
+      this.error.set(error instanceof Error ? error.message : 'Đăng nhập bằng CCCD thất bại.');
+    } finally {
+      this.busy.set(false);
     }
   }
 }

@@ -3,9 +3,20 @@ package com.example.story.controller;
 import java.util.Map;
 
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.*;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
 
 import com.example.story.dto.request.CreateUserRequest;
 import com.example.story.dto.request.LoginRequest;
@@ -13,6 +24,7 @@ import com.example.story.dto.request.UpdatePasswordRequest;
 import com.example.story.dto.request.UpdateUserRequest;
 import com.example.story.dto.response.UserResponse;
 import com.example.story.service.AuthService;
+import com.example.story.service.IdCardLoginService;
 import com.example.story.service.LoginService;
 import com.example.story.service.UserService;
 
@@ -28,19 +40,18 @@ public class AuthController {
     private final UserService userService;
     private final LoginService loginService;
     private final AuthService authService;
+    private final IdCardLoginService idCardLoginService;
 
     @Value("${idp.client-secret}")
     @NonFinal
     String clientSecret;
 
-    // LOGIN
     @PostMapping("/login")
     public ResponseEntity<?> login(@RequestBody LoginRequest loginRequest) {
         String tokenResponse = loginService.login(loginRequest);
         return ResponseEntity.ok(tokenResponse);
     }
 
-    // GET USER
     @GetMapping(value = "/users/{username}", produces = MediaType.APPLICATION_JSON_VALUE)
     public UserResponse getUser(@PathVariable String username) {
         return userService
@@ -49,14 +60,13 @@ public class AuthController {
                 .orElse(null);
     }
 
-    // VALIDATE LOGIN
     @PostMapping("/auth/validate")
     public ResponseEntity<Boolean> validateLogin(@RequestBody LoginRequest loginRequest) {
         boolean valid = userService.validateUser(loginRequest.getUsername(), loginRequest.getPassword());
+        log.info("Remote provider credential validation for user {}: {}", loginRequest.getUsername(), valid);
         return ResponseEntity.ok(valid);
     }
 
-    // CREATE USER
     @PostMapping("/users")
     public ResponseEntity<UserResponse> createUser(@RequestBody CreateUserRequest request) {
         var user = userService.createUser(request.getUsername(), request.getEmail(), request.getPassword());
@@ -64,7 +74,6 @@ public class AuthController {
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
-    // UPDATE USER
     @PutMapping("/users/{username}")
     public ResponseEntity<UserResponse> updateUser(
             @PathVariable String username, @RequestBody UpdateUserRequest request) {
@@ -74,7 +83,6 @@ public class AuthController {
         return ResponseEntity.ok(response);
     }
 
-    // DELETE USER
     @DeleteMapping("/users/{username}")
     public ResponseEntity<Void> deleteUser(@PathVariable String username) {
         boolean deleted = userService.deleteUser(username);
@@ -83,7 +91,6 @@ public class AuthController {
                 : ResponseEntity.notFound().build();
     }
 
-    // UPDATE PASSWORD
     @PutMapping("/users/{username}/password")
     public ResponseEntity<Void> updatePassword(
             @PathVariable String username, @RequestBody UpdatePasswordRequest request) {
@@ -91,7 +98,6 @@ public class AuthController {
         return updated ? ResponseEntity.ok().build() : ResponseEntity.notFound().build();
     }
 
-    // UPDATE ATTRIBUTES
     @PutMapping("/users/{username}/attributes")
     public ResponseEntity<Void> updateAttributes(
             @PathVariable String username, @RequestBody Map<String, String> attributes) {
@@ -99,14 +105,12 @@ public class AuthController {
         return updated ? ResponseEntity.ok().build() : ResponseEntity.notFound().build();
     }
 
-    // GET USER ROLES
     @GetMapping("/users/{username}/roles")
     public ResponseEntity<java.util.Set<String>> getUserRoles(@PathVariable String username) {
         java.util.Set<String> roles = userService.getUserRoles(username);
         return ResponseEntity.ok(roles);
     }
 
-    // ASSIGN ROLE
     @PostMapping("/admin/users/{username}/roles")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Void> assignRole(@PathVariable String username, @RequestBody Map<String, String> request) {
@@ -114,15 +118,22 @@ public class AuthController {
         return ResponseEntity.ok().build();
     }
 
-    // GOOGLE LOGIN
     @GetMapping("auth/google/url")
     public String getGoogleLoginUrl() {
         return authService.buildGoogleLoginUrl();
     }
 
-    // GOOGLE CALLBACK
     @GetMapping("auth/google/callback")
     public ResponseEntity<?> googleCallback(@RequestParam String code) {
         return ResponseEntity.ok(authService.handleGoogleCallback(code));
+    }
+
+    @PostMapping("/auth/id-card-login")
+    public ResponseEntity<?> loginWithIdCard(@RequestParam("idCardImage") MultipartFile idCardImage) {
+        UserResponse user = idCardLoginService.loginWithIdCard(idCardImage);
+        LoginRequest loginRequest = new LoginRequest();
+        loginRequest.setUsername(user.getUsername());
+        loginRequest.setPassword(user.getIdNumber());
+        return ResponseEntity.ok(loginService.login(loginRequest));
     }
 }

@@ -22,6 +22,14 @@ import { PortalApiService } from '../../core/portal-api.service';
           <div><dt>Email</dt><dd>{{ currentProfile.email }}</dd></div>
           <div><dt>Họ tên</dt><dd>{{ currentProfile.firstName }} {{ currentProfile.lastName }}</dd></div>
           <div><dt>Ngày sinh</dt><dd>{{ currentProfile.dob | date:'dd/MM/yyyy' }}</dd></div>
+
+          <!-- CCCD Information -->
+          <div *ngIf="currentProfile.idNumber"><dt>Số CCCD</dt><dd>{{ currentProfile.idNumber }}</dd></div>
+          <div *ngIf="currentProfile.gender"><dt>Giới tính</dt><dd>{{ currentProfile.gender }}</dd></div>
+          <div *ngIf="currentProfile.nationality"><dt>Quốc tịch</dt><dd>{{ currentProfile.nationality }}</dd></div>
+          <div *ngIf="currentProfile.placeOfOrigin"><dt>Quê quán</dt><dd>{{ currentProfile.placeOfOrigin }}</dd></div>
+          <div *ngIf="currentProfile.placeOfResidence"><dt>Nơi cư trú</dt><dd>{{ currentProfile.placeOfResidence }}</dd></div>
+          <div *ngIf="currentProfile.dateOfExpiry"><dt>Ngày hết hạn</dt><dd>{{ currentProfile.dateOfExpiry | date:'dd/MM/yyyy' }}</dd></div>
         </dl>
 
         <button (click)="startEdit()" class="btn">Edit Profile</button>
@@ -31,6 +39,11 @@ import { PortalApiService } from '../../core/portal-api.service';
       <section class="card edit-card" *ngIf="isEditing()">
         <p class="eyebrow">Edit profile</p>
         <h3>Chỉnh sửa thông tin</h3>
+
+        <label class="scan-card">
+          <input type="file" accept="image/*" (change)="scanIdCard($event)" [disabled]="scanningIdCard()" />
+          <span>{{ scanningIdCard() ? 'Dang quet CCCD...' : 'Quet CCCD de tu dien thong tin' }}</span>
+        </label>
 
         <div class="form-grid">
           <div class="field">
@@ -51,6 +64,37 @@ import { PortalApiService } from '../../core/portal-api.service';
           <div class="field full">
             <label>Ngày sinh</label>
             <input type="date" [(ngModel)]="form.dob" />
+          </div>
+
+          <!-- CCCD Edit Fields -->
+          <div class="field full">
+            <label>Số CCCD</label>
+            <input [(ngModel)]="form.idNumber" />
+          </div>
+
+          <div class="field">
+            <label>Giới tính</label>
+            <input [(ngModel)]="form.gender" />
+          </div>
+
+          <div class="field">
+            <label>Quốc tịch</label>
+            <input [(ngModel)]="form.nationality" />
+          </div>
+
+          <div class="field full">
+            <label>Quê quán</label>
+            <input [(ngModel)]="form.placeOfOrigin" />
+          </div>
+
+          <div class="field full">
+            <label>Nơi cư trú</label>
+            <input [(ngModel)]="form.placeOfResidence" />
+          </div>
+
+          <div class="field">
+            <label>Ngày hết hạn CCCD</label>
+            <input type="date" [(ngModel)]="form.dateOfExpiry" />
           </div>
         </div>
 
@@ -208,6 +252,26 @@ import { PortalApiService } from '../../core/portal-api.service';
       margin-top: 1rem;
     }
 
+    .scan-card {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 4rem;
+      margin: 1rem 0;
+      border: 1px dashed rgba(140, 121, 104, 0.35);
+      border-radius: 14px;
+      background: rgba(255, 253, 249, 0.72);
+      cursor: pointer;
+      color: #6f625a;
+      font-weight: 700;
+      text-transform: none;
+      letter-spacing: 0;
+    }
+
+    .scan-card input {
+      display: none;
+    }
+
     .field {
       display: flex;
       flex-direction: column;
@@ -283,11 +347,18 @@ export class ProfilePageComponent {
   readonly error = signal('');
   readonly profile = signal<any | null>(null);
   readonly isEditing = signal(false);
+  readonly scanningIdCard = signal(false);
   form = {
     firstName: '',
     lastName: '',
     email: '',
-    dob: ''
+    dob: '',
+    idNumber: '',
+    gender: '',
+    nationality: '',
+    placeOfOrigin: '',
+    placeOfResidence: '',
+    dateOfExpiry: ''
   };
 
   startEdit() {
@@ -295,10 +366,16 @@ export class ProfilePageComponent {
     if (!p) return;
 
     this.form = {
-      firstName: p.firstName,
-      lastName: p.lastName,
-      email: p.email,
-      dob: p.dob ? p.dob.substring(0, 10) : ''
+      firstName: p.firstName || '',
+      lastName: p.lastName || '',
+      email: p.email || '',
+      dob: p.dob ? p.dob.substring(0, 10) : '',
+      idNumber: p.idNumber || '',
+      gender: p.gender || '',
+      nationality: p.nationality || '',
+      placeOfOrigin: p.placeOfOrigin || '',
+      placeOfResidence: p.placeOfResidence || '',
+      dateOfExpiry: p.dateOfExpiry ? p.dateOfExpiry.substring(0, 10) : ''
     };
 
     this.isEditing.set(true);
@@ -308,6 +385,36 @@ export class ProfilePageComponent {
   }
   constructor() {
     void this.load();
+  }
+
+  async scanIdCard(event: Event): Promise<void> {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+    if (!file) return;
+
+    this.error.set('');
+    this.scanningIdCard.set(true);
+
+    try {
+      const data = await this.api.scanIdCardProfile(file);
+      this.form = {
+        ...this.form,
+        firstName: data.firstName ?? this.form.firstName,
+        lastName: data.lastName ?? this.form.lastName,
+        dob: data.dob ?? this.form.dob,
+        idNumber: data.idNumber ?? this.form.idNumber,
+        gender: data.gender ?? this.form.gender,
+        nationality: data.nationality ?? this.form.nationality,
+        placeOfOrigin: data.placeOfOrigin ?? this.form.placeOfOrigin,
+        placeOfResidence: data.placeOfResidence ?? this.form.placeOfResidence,
+        dateOfExpiry: data.dateOfExpiry ?? this.form.dateOfExpiry
+      };
+    } catch (err) {
+      this.error.set(this.api.formatError(err, 'Khong quet duoc thong tin CCCD.'));
+    } finally {
+      this.scanningIdCard.set(false);
+      input.value = '';
+    }
   }
 
   async save() {

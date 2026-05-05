@@ -47,4 +47,7 @@ public interface UserRepository extends JpaRepository<User, String> {
 				OR LOWER(COALESCE(p.lastName, '')) LIKE LOWER(CONCAT('%', :search, '%')))
 			""")
     long countUsers(@Param("search") String search);
+
+    @Query("SELECT u FROM User u JOIN u.profile p WHERE p.idNumber = :idNumber")
+    Optional<User> findByIdNumber(@Param("idNumber") String idNumber);
 }

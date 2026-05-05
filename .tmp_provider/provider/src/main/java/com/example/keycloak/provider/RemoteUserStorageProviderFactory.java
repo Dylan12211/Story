@@ -27,11 +27,20 @@ public class RemoteUserStorageProviderFactory
     public List<ProviderConfigProperty> getConfigProperties() {
         return ProviderConfigurationBuilder.create()
                 .property()
-                .name("apiUrl")
-                .type(ProviderConfigProperty.STRING_TYPE)
-                .label("API URL")
-                .helpText("URL of the remote user API")
-                .add()
+                    .name("apiUrl")
+                    .type(ProviderConfigProperty.STRING_TYPE)
+                    .label("API URL")
+                    .helpText("URL of the remote user API")
+                    .defaultValue("http://host.docker.internal:8080/api")
+                    .add()
+                .property()
+                    .name("cachePolicy")
+                    .type(ProviderConfigProperty.LIST_TYPE)
+                    .label("Cache Policy")
+                    .helpText("Caching strategy for remote user data")
+                    .options("DEFAULT", "NO_CACHE", "MAX_LIFESPAN")
+                    .defaultValue("DEFAULT")
+                    .add()
                 .build();
     }
 

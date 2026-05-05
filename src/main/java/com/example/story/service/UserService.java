@@ -36,6 +36,67 @@ public class UserService {
         return userRepository.findById(userId);
     }
 
+    // --- Find user by ID number (CCCD) ---
+    public Optional<User> findByIdNumber(String idNumber) {
+        return userRepository.findByIdNumber(idNumber);
+    }
+
+    // --- Update ID card information ---
+    @Transactional
+    public User updateIdCardInfo(String username, Map<String, String> idCardData) {
+        User user = userRepository
+                .findByUsername(username)
+                .orElseThrow(() -> new RuntimeException("User not found: " + username));
+
+        if (user.getProfile() == null) {
+            user.setProfile(new Profile());
+            user.getProfile().setUser(user);
+            user.getProfile().setUsername(username);
+            user.getProfile().setEmail(user.getEmail());
+        }
+
+        Profile profile = user.getProfile();
+
+        if (idCardData.containsKey("idNumber")) {
+            profile.setIdNumber(idCardData.get("idNumber"));
+        }
+        if (idCardData.containsKey("name")) {
+            String[] nameParts = idCardData.get("name").split(" ");
+            if (nameParts.length > 0) {
+                profile.setLastName(nameParts[nameParts.length - 1]);
+                profile.setFirstName(String.join(" ", Arrays.copyOfRange(nameParts, 0, nameParts.length - 1)));
+            }
+        }
+        if (idCardData.containsKey("dob")) {
+            try {
+                profile.setDob(java.time.LocalDate.parse(idCardData.get("dob")));
+            } catch (Exception e) {
+                log.warn("Invalid date format for dob: {}", idCardData.get("dob"));
+            }
+        }
+        if (idCardData.containsKey("gender")) {
+            profile.setGender(idCardData.get("gender"));
+        }
+        if (idCardData.containsKey("nationality")) {
+            profile.setNationality(idCardData.get("nationality"));
+        }
+        if (idCardData.containsKey("placeOfOrigin")) {
+            profile.setPlaceOfOrigin(idCardData.get("placeOfOrigin"));
+        }
+        if (idCardData.containsKey("placeOfResidence")) {
+            profile.setPlaceOfResidence(idCardData.get("placeOfResidence"));
+        }
+        if (idCardData.containsKey("dateOfExpiry")) {
+            try {
+                profile.setDateOfExpiry(java.time.LocalDate.parse(idCardData.get("dateOfExpiry")));
+            } catch (Exception e) {
+                log.warn("Invalid date format for dateOfExpiry: {}", idCardData.get("dateOfExpiry"));
+            }
+        }
+
+        return userRepository.save(user);
+    }
+
     public List<UserInfo> getAllUserInfo() {
         return userRepository.findAll().stream()
                 .map(user -> new UserInfo(
@@ -271,16 +332,22 @@ public class UserService {
 
     public UserResponse toUserResponse(User user) {
         Profile profile = user.getProfile();
-        String firstName = profile != null ? profile.getFirstName() : null;
-        String lastName = profile != null ? profile.getLastName() : null;
 
-        return new UserResponse(
-                user.getId(),
-                user.getUsername(),
-                user.getEmail(),
-                firstName,
-                lastName,
-                user.getEmail() != null && !user.getEmail().isBlank(),
-                user.getRoles());
+        return UserResponse.builder()
+                .userId(user.getId())
+                .username(user.getUsername())
+                .email(user.getEmail())
+                .firstName(profile != null ? profile.getFirstName() : null)
+                .lastName(profile != null ? profile.getLastName() : null)
+                .emailVerified(user.getEmail() != null && !user.getEmail().isBlank())
+                .roles(user.getRoles())
+                .idNumber(profile != null ? profile.getIdNumber() : null)
+                .dob(profile != null ? profile.getDob() : null)
+                .gender(profile != null ? profile.getGender() : null)
+                .nationality(profile != null ? profile.getNationality() : null)
+                .placeOfOrigin(profile != null ? profile.getPlaceOfOrigin() : null)
+                .placeOfResidence(profile != null ? profile.getPlaceOfResidence() : null)
+                .dateOfExpiry(profile != null ? profile.getDateOfExpiry() : null)
+                .build();
     }
 }

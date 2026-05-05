@@ -19,20 +19,49 @@ export class GoogleCallbackComponent {
   async handle() {
     const url = new URL(window.location.href);
     const code = url.searchParams.get('code');
+    const error = url.searchParams.get('error');
 
-    if (!code) {
+    if (error) {
+      console.error('Google OAuth error:', error);
+      await this.router.navigate(['/auth']);
       return;
     }
 
-    const res = await fetch(`http://localhost:8080/api/auth/google/callback?code=${code}`);
+    if (!code) {
+      console.error('No code received from Google');
+      await this.router.navigate(['/auth']);
+      return;
+    }
 
-    const data = await res.json();
+    try {
+      const res = await fetch(`http://localhost:8080/api/auth/google/callback?code=${code}`);
+      
+      if (!res.ok) {
+        console.error('Backend error:', res.status, await res.text());
+        await this.router.navigate(['/auth']);
+        return;
+      }
 
-    const accessToken = data.access_token;
+      const data = await res.json();
+      const accessToken = data.access_token;
 
-    // 👇 lưu session
-    this.auth.saveSessionFromToken(data);
+      if (!accessToken) {
+        console.error('No access_token in response');
+        await this.router.navigate(['/auth']);
+        return;
+      }
 
-    await this.router.navigate(['/portal/dashboard']);
+      // 👇 lưu session
+      this.auth.saveSessionFromToken(data);
+      
+      // Đợi signal cập nhật rồi mới navigate
+      setTimeout(async () => {
+        await this.router.navigate(['/portal/dashboard']);
+      }, 100);
+      
+    } catch (err) {
+      console.error('Login error:', err);
+      await this.router.navigate(['/auth']);
+    }
   }
 }

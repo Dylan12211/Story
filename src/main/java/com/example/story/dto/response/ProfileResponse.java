@@ -26,5 +26,14 @@ public class ProfileResponse {
     @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd")
     LocalDate dob;
 
+    String idNumber;
+    String gender;
+    String nationality;
+    String placeOfOrigin;
+    String placeOfResidence;
+
+    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd")
+    LocalDate dateOfExpiry;
+
     List<String> roles;
 }

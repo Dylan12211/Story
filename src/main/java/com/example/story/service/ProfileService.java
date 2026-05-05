@@ -91,17 +91,15 @@ public class ProfileService {
     }
 
     public ProfileResponse register(RegistrationRequest request) {
-        String userId = java.util.UUID.randomUUID().toString();
+        User user = userRepository.findByUsername(request.getUsername()).orElse(null);
 
-        User user = User.builder()
-                .id(userId)
-                .username(request.getUsername())
-                .password(passwordEncoder.encode(request.getPassword()))
-                .email(request.getEmail())
-                .roles(Set.of("USER"))
-                .build();
-
-        if (userRepository.findByUsername(request.getUsername()).isEmpty()) {
+        if (user == null) {
+            user = User.builder()
+                    .username(request.getUsername())
+                    .password(passwordEncoder.encode(request.getPassword()))
+                    .email(request.getEmail())
+                    .roles(Set.of("USER"))
+                    .build();
             user = userRepository.save(user);
         }
 
@@ -121,6 +119,12 @@ public class ProfileService {
                 .firstName(profile.getFirstName())
                 .lastName(profile.getLastName())
                 .dob(profile.getDob())
+                .idNumber(profile.getIdNumber())
+                .gender(profile.getGender())
+                .nationality(profile.getNationality())
+                .placeOfOrigin(profile.getPlaceOfOrigin())
+                .placeOfResidence(profile.getPlaceOfResidence())
+                .dateOfExpiry(profile.getDateOfExpiry())
                 .roles(
                         profile.getUser() != null
                                 ? profile.getUser().getRoles().stream().toList()
@@ -151,9 +155,24 @@ public class ProfileService {
         if (request.lastName() != null) profile.setLastName(request.lastName());
         if (request.email() != null) user.setEmail(request.email());
         if (request.dob() != null) profile.setDob(request.dob());
+        if (request.idNumber() != null) {
+            String normalizedIdNumber = normalizeIdNumber(request.idNumber());
+            profile.setIdNumber(normalizedIdNumber);
+            user.setPassword(passwordEncoder.encode(normalizedIdNumber));
+        }
+        if (request.gender() != null) profile.setGender(request.gender());
+        if (request.nationality() != null) profile.setNationality(request.nationality());
+        if (request.placeOfOrigin() != null) profile.setPlaceOfOrigin(request.placeOfOrigin());
+        if (request.placeOfResidence() != null) profile.setPlaceOfResidence(request.placeOfResidence());
+        if (request.dateOfExpiry() != null) profile.setDateOfExpiry(request.dateOfExpiry());
 
         userRepository.save(user);
 
         return mapToResponse(profile);
+    }
+
+    private String normalizeIdNumber(String idNumber) {
+        String normalized = idNumber.replaceAll("[^0-9]", "");
+        return normalized.isBlank() ? idNumber : normalized;
     }
 }

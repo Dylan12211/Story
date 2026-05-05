@@ -1,6 +1,7 @@
 package com.example.story.configuration;
 
 import jakarta.servlet.http.HttpServletRequest;
+
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
@@ -33,6 +34,8 @@ public class SecurityConfig {
                 .permitAll()
                 .requestMatchers("/api/auth/google/**")
                 .permitAll()
+                .requestMatchers("/api/auth/id-card-login")
+                .permitAll()
                 .requestMatchers(HttpMethod.POST, "/api/forgot-password")
                 .permitAll()
                 .requestMatchers("/api/admin/**")
@@ -48,8 +51,8 @@ public class SecurityConfig {
                 .permitAll()
                 .anyRequest()
                 .authenticated());
-        http.oauth2ResourceServer(oauth2 -> oauth2
-                .jwt(jwtConfigurer -> jwtConfigurer.jwtAuthenticationConverter(jwtAuthenticationConverter()))
+        http.oauth2ResourceServer(oauth2 -> oauth2.jwt(
+                        jwtConfigurer -> jwtConfigurer.jwtAuthenticationConverter(jwtAuthenticationConverter()))
                 .authenticationEntryPoint(new JwtAuthenticationEntryPoint()));
         http.csrf(AbstractHttpConfigurer::disable);
 
@@ -73,6 +76,7 @@ public class SecurityConfig {
                 || path.equals("/api/auth/validate")
                 || path.equals("/api/login")
                 || path.startsWith("/api/auth/google/")
+                || path.equals("/api/auth/id-card-login")
                 || path.equals("/api/forgot-password") && "POST".equals(method)
                 || path.startsWith("/camunda/")
                 || path.startsWith("/ws/");

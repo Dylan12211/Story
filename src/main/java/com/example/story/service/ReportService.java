@@ -33,7 +33,11 @@ public class ReportService {
     private final TaskService taskService;
     private final ReportService self; // Inject self for proxy calls
 
-    public ReportService(UserService userService, StoryRepository storyRepository, TaskService taskService, @Lazy ReportService self) {
+    public ReportService(
+            UserService userService,
+            StoryRepository storyRepository,
+            TaskService taskService,
+            @Lazy ReportService self) {
         this.userService = userService;
         this.storyRepository = storyRepository;
         this.taskService = taskService;

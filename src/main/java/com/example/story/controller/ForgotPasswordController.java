@@ -90,7 +90,8 @@ public class ForgotPasswordController {
             System.out.println("Keycloak server error: " + responseBody);
             if (responseBody != null && responseBody.contains("Failed to send execute actions email")) {
                 return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                        .body("Keycloak không gửi được email. Vui lòng kiểm tra cấu hình SMTP trong Keycloak Admin Console → Realm Settings → Email Settings");
+                        .body(
+                                "Keycloak không gửi được email. Vui lòng kiểm tra cấu hình SMTP trong Keycloak Admin Console → Realm Settings → Email Settings");
             }
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Lỗi Keycloak: " + responseBody);
         } catch (Exception e) {

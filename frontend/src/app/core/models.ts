@@ -41,6 +41,25 @@ export interface ProfileResponse {
   lastName: string;
   dob: string;
   roles: string[];
+  // CCCD Information
+  idNumber?: string;
+  gender?: string;
+  nationality?: string;
+  placeOfOrigin?: string;
+  placeOfResidence?: string;
+  dateOfExpiry?: string;
+}
+
+export interface IdCardProfileResponse {
+  idNumber?: string;
+  firstName?: string;
+  lastName?: string;
+  dob?: string;
+  gender?: string;
+  nationality?: string;
+  placeOfOrigin?: string;
+  placeOfResidence?: string;
+  dateOfExpiry?: string;
 }
 
 export interface RegisterPayload {
