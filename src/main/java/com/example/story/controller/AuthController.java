@@ -22,6 +22,7 @@ import com.example.story.dto.request.CreateUserRequest;
 import com.example.story.dto.request.LoginRequest;
 import com.example.story.dto.request.UpdatePasswordRequest;
 import com.example.story.dto.request.UpdateUserRequest;
+import com.example.story.dto.response.CccdLoginResponse;
 import com.example.story.dto.response.UserResponse;
 import com.example.story.service.AuthService;
 import com.example.story.service.IdCardLoginService;
@@ -128,12 +129,30 @@ public class AuthController {
         return ResponseEntity.ok(authService.handleGoogleCallback(code));
     }
 
-    @PostMapping("/auth/id-card-login")
-    public ResponseEntity<?> loginWithIdCard(@RequestParam("idCardImage") MultipartFile idCardImage) {
-        UserResponse user = idCardLoginService.loginWithIdCard(idCardImage);
-        LoginRequest loginRequest = new LoginRequest();
-        loginRequest.setUsername(user.getUsername());
-        loginRequest.setPassword(user.getIdNumber());
-        return ResponseEntity.ok(loginService.login(loginRequest));
+    @PostMapping("/auth/cccd/login")
+    public ResponseEntity<CccdLoginResponse> loginWithCccd(@RequestParam("image") MultipartFile image) {
+        try {
+            // Step 1: Process CCCD login (OCR + find user)
+            IdCardLoginService.IdCardLoginResult result = idCardLoginService.loginWithIdCard(image);
+            UserResponse user = result.getUser();
+
+            // Step 2: Login with Keycloak to get token
+            LoginRequest loginRequest = new LoginRequest();
+            loginRequest.setUsername(user.getUsername());
+            loginRequest.setPassword(user.getIdNumber());
+            String tokenResponse = loginService.login(loginRequest);
+
+            // Step 3: Build success response
+            CccdLoginResponse response = CccdLoginResponse.success(tokenResponse, user, result.getOcrData());
+            return ResponseEntity.ok(response);
+
+        } catch (RuntimeException e) {
+            log.error("CCCD login failed: {}", e.getMessage());
+            return ResponseEntity.badRequest().body(CccdLoginResponse.error(e.getMessage()));
+        } catch (Exception e) {
+            log.error("CCCD login error: {}", e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(CccdLoginResponse.error("Lỗi hệ thống khi xử lý đăng nhập CCCD"));
+        }
     }
 }

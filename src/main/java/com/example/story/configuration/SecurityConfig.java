@@ -36,6 +36,8 @@ public class SecurityConfig {
                 .permitAll()
                 .requestMatchers("/api/auth/id-card-login")
                 .permitAll()
+                .requestMatchers("/api/auth/cccd/login")
+                .permitAll()
                 .requestMatchers(HttpMethod.POST, "/api/forgot-password")
                 .permitAll()
                 .requestMatchers("/api/admin/**")
@@ -77,6 +79,7 @@ public class SecurityConfig {
                 || path.equals("/api/login")
                 || path.startsWith("/api/auth/google/")
                 || path.equals("/api/auth/id-card-login")
+                || path.equals("/api/auth/cccd/login")
                 || path.equals("/api/forgot-password") && "POST".equals(method)
                 || path.startsWith("/camunda/")
                 || path.startsWith("/ws/");

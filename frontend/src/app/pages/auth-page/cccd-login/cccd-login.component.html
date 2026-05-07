@@ -1,0 +1,137 @@
+<div class="cccd-login-container">
+  <div class="cccd-login-card">
+    <!-- Header -->
+    <div class="cccd-header">
+      <h2 class="cccd-title">Đăng nhập bằng CCCD</h2>
+      <p class="cccd-subtitle">Tải lên ảnh CCCD của bạn để xác thực</p>
+    </div>
+
+    <!-- Upload Section -->
+    <div class="upload-section" *ngIf="!isImageLoaded">
+      <div class="upload-area" (click)="triggerFileInput()" (drop)="onFileSelected($event)" (dragover)="$event.preventDefault()">
+        <input
+          type="file"
+          id="fileInput"
+          accept="image/*"
+          (change)="onFileSelected($event)"
+          hidden
+        />
+        <div class="upload-icon">
+          <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+            <polyline points="17 8 12 3 7 8"></polyline>
+            <line x1="12" y1="3" x2="12" y2="15"></line>
+          </svg>
+        </div>
+        <p class="upload-text">Kéo thả hoặc click để tải ảnh CCCD</p>
+        <p class="upload-hint">Hỗ trợ: JPG, PNG, WEBP (tối đa 10MB)</p>
+      </div>
+    </div>
+
+    <!-- Image Editor Section -->
+    <div class="editor-section" *ngIf="isImageLoaded">
+      <!-- Toolbar -->
+      <div class="editor-toolbar">
+        <button type="button" class="toolbar-btn" (click)="zoomOut()" title="Thu nhỏ">
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="11" cy="11" r="8"></circle>
+            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+            <line x1="8" y1="11" x2="14" y2="11"></line>
+          </svg>
+        </button>
+        <span class="zoom-level">{{ (scale() * 100) | number:'1.0-0' }}%</span>
+        <button type="button" class="toolbar-btn" (click)="zoomIn()" title="Phóng to">
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="11" cy="11" r="8"></circle>
+            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+            <line x1="11" y1="8" x2="11" y2="14"></line>
+            <line x1="8" y1="11" x2="14" y2="11"></line>
+          </svg>
+        </button>
+        <div class="toolbar-divider"></div>
+        <button type="button" class="toolbar-btn" (click)="rotateLeft()" title="Xoay trái">
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="9 14 4 9 9 4"></polyline>
+            <path d="M4 9h10.5a5.5 5.5 0 0 1 5.5 5.5v0a5.5 5.5 0 0 1-5.5 5.5H11"></path>
+          </svg>
+        </button>
+        <button type="button" class="toolbar-btn" (click)="rotateRight()" title="Xoay phải">
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="15 14 20 9 15 4"></polyline>
+            <path d="M20 9H9.5A5.5 5.5 0 0 0 4 14.5v0A5.5 5.5 0 0 0 9.5 20H13"></path>
+          </svg>
+        </button>
+      </div>
+
+      <!-- Cropper Container -->
+      <div class="cropper-wrapper">
+        <image-cropper
+          [imageChangedEvent]="imageChangedEvent"
+          [maintainAspectRatio]="true"
+          [aspectRatio]="aspectRatio"
+          [resizeToWidth]="1200"
+          [resizeToHeight]="0"
+          [cropperMinWidth]="cropperMinWidth"
+          [cropperMinHeight]="cropperMinHeight"
+          [transform]="transform"
+          [canvasRotation]="canvasRotation"
+          [allowMoveImage]="true"
+          [hidden]="!showCropper"
+          format="jpeg"
+          outputType="blob"
+          (imageCropped)="imageCroppedEvent($event)"
+          (imageLoaded)="imageLoaded($event)"
+          (cropperReady)="cropperReady()"
+          (loadImageFailed)="loadImageFailed()"
+          class="cccd-cropper"
+        ></image-cropper>
+
+        <!-- Custom Overlay Guide -->
+        <div class="crop-overlay" *ngIf="showCropper">
+          <div class="overlay-hint">
+            <span>Kéo để di chuyển • Kéo góc để resize</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Preview Section -->
+      <div class="preview-section" *ngIf="croppedImage">
+        <h4 class="preview-title">Kết quả:</h4>
+        <div class="preview-image-wrapper">
+          <img [src]="croppedImage" alt="CCCD đã cắt" class="preview-image" />
+        </div>
+      </div>
+
+      <!-- Action Buttons -->
+      <div class="action-buttons">
+        <button type="button" class="btn btn-secondary" (click)="onReset()">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="23 4 23 10 17 10"></polyline>
+            <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path>
+          </svg>
+          Chọn ảnh khác
+        </button>
+        <button type="button" class="btn btn-primary" (click)="confirmCrop($event)" [disabled]="isProcessing || !croppedImage">
+          <span *ngIf="!isProcessing">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="20 6 9 17 4 12"></polyline>
+            </svg>
+            Xác nhận
+          </span>
+          <span *ngIf="isProcessing" class="loading-spinner"></span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Instructions -->
+    <div class="cccd-instructions" *ngIf="!isImageLoaded">
+      <h4>Hướng dẫn:</h4>
+      <ul>
+        <li>Đảm bảo ảnh CCCD rõ nét, không bị mờ</li>
+        <li>Thẻ CCCD nằm ngang trong khung hình</li>
+        <li>Đầy đủ 4 góc của thẻ CCCD</li>
+        <li>Tránh ánh sáng phản chiếu trên thẻ</li>
+      </ul>
+    </div>
+  </div>
+</div>

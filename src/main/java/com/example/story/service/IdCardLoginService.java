@@ -9,6 +9,8 @@ import com.example.story.dto.ocr.IdCardData;
 import com.example.story.dto.response.UserResponse;
 import com.example.story.entity.User;
 
+import lombok.Builder;
+import lombok.Data;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
@@ -20,7 +22,15 @@ public class IdCardLoginService {
     private final OcrService ocrService;
     private final UserService userService;
 
-    public UserResponse loginWithIdCard(MultipartFile idCardImage) {
+    @Data
+    @Builder
+    public static class IdCardLoginResult {
+        private UserResponse user;
+        private IdCardData ocrData;
+        private String extractedIdNumber;
+    }
+
+    public IdCardLoginResult loginWithIdCard(MultipartFile idCardImage) {
         log.info("Processing ID card login");
 
         // Step 1: OCR to extract ID card data
@@ -46,7 +56,11 @@ public class IdCardLoginService {
         User user = userOpt.orElseThrow(() -> new RuntimeException("Tài khoản không tồn tại với số CCCD này"));
         log.info("User found with ID number: {}, username: {}", idNumber, user.getUsername());
 
-        return userService.toUserResponse(user);
+        return IdCardLoginResult.builder()
+                .user(userService.toUserResponse(user))
+                .ocrData(idCardData)
+                .extractedIdNumber(idNumber)
+                .build();
     }
 
     private String extractIdNumber(IdCardData idCardData) {

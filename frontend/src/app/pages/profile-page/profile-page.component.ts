@@ -1,12 +1,14 @@
 import { CommonModule } from '@angular/common';
-import { Component, inject, signal } from '@angular/core';
+import { Component, inject, signal, ViewChild, ElementRef } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { PortalApiService } from '../../core/portal-api.service';
+import { CccdLoginComponent } from '../auth-page/cccd-login/cccd-login.component';
+import { CccdDetectionService, CCCDAlignmentResult, CCCDFullProcessResult } from '../../core/cccd-detection.service';
 
 @Component({
   selector: 'app-profile-page',
   standalone: true,
-  imports: [CommonModule,FormsModule],
+  imports: [CommonModule, FormsModule, CccdLoginComponent],
   template: `
     <section class="profile-grid">
       <div class="message" *ngIf="error()">{{ error() }}</div>
@@ -40,12 +42,59 @@ import { PortalApiService } from '../../core/portal-api.service';
         <p class="eyebrow">Edit profile</p>
         <h3>Chỉnh sửa thông tin</h3>
 
-        <label class="scan-card">
-          <input type="file" accept="image/*" (change)="scanIdCard($event)" [disabled]="scanningIdCard()" />
-          <span>{{ scanningIdCard() ? 'Dang quet CCCD...' : 'Quet CCCD de tu dien thong tin' }}</span>
-        </label>
+        <!-- CCCD Processing Options -->
+        <div class="cccd-options" *ngIf="!showCropper() && !showAlignedPreview()">
+          <p class="option-title">Chọn phương thức quét CCCD:</p>
 
-        <div class="form-grid">
+          <!-- Option 1: Python YOLO Detection (Auto Align) -->
+          <div class="option-card" (click)="triggerPythonFileInput()">
+            <div class="option-content">
+              <strong>Nhập CCCD</strong>
+              <span>Phát hiện tự động, xoay và căn chỉnh CCCD</span>
+            </div>
+            <input
+              #pythonFileInput
+              type="file"
+              accept="image/*"
+              style="display: none"
+              (change)="onPythonFileSelected($event)"
+            />
+          </div>
+
+
+        </div>
+
+        <!-- Aligned Image Preview (from Python backend) -->
+        <div class="aligned-preview-container" *ngIf="showAlignedPreview()">
+          <h4>Ảnh CCCD đã căn thẳng:</h4>
+          <div class="aligned-image-wrapper">
+            <img
+              [src]="detectionService.createImageUrl(alignedImageBase64!)"
+              alt="CCCD đã căn thẳng"
+              class="aligned-image"
+            />
+          </div>
+          <div class="aligned-actions">
+            <button class="btn primary" (click)="confirmAlignedImage()">
+              ✓ Xác nhận & OCR
+            </button>
+            <button class="btn ghost" (click)="cancelAlignedPreview()">
+              ✕ Hủy
+            </button>
+          </div>
+        </div>
+
+        <!-- Manual Cropper -->
+        <div class="cropper-container" *ngIf="showCropper()">
+          <app-cccd-login
+            (imageCropped)="onCccdCropped($event)"
+            (loginSubmit)="onCccdConfirm($event)">
+          </app-cccd-login>
+          <button class="btn ghost" (click)="cancelCrop()" style="margin-top: 1rem;">Hủy</button>
+        </div>
+
+        <div class="form-section" *ngIf="!showCropper() && !showAlignedPreview()">
+          <div class="form-grid">
           <div class="field">
             <label>First name</label>
             <input [(ngModel)]="form.firstName" />
@@ -101,6 +150,7 @@ import { PortalApiService } from '../../core/portal-api.service';
         <div class="actions">
           <button class="btn primary" (click)="save()">Save changes</button>
           <button class="btn ghost" (click)="cancel()">Cancel</button>
+        </div>
         </div>
       </section>
     </section>
@@ -266,10 +316,141 @@ import { PortalApiService } from '../../core/portal-api.service';
       font-weight: 700;
       text-transform: none;
       letter-spacing: 0;
+      transition: all 0.2s ease;
+    }
+
+    .scan-card:hover {
+      background: rgba(255, 253, 249, 0.9);
+      border-color: rgba(140, 121, 104, 0.5);
     }
 
     .scan-card input {
       display: none;
+    }
+
+    .cccd-section {
+      margin-bottom: 1rem;
+    }
+
+    .cropper-container {
+      background: white;
+      border-radius: 16px;
+      padding: 1rem;
+      margin: 1rem 0;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    }
+
+    .cropper-container ::ng-deep .cccd-login-container {
+      min-height: auto;
+      background: transparent;
+      padding: 0;
+    }
+
+    .cropper-container ::ng-deep .cccd-login-card {
+      box-shadow: none;
+      padding: 0;
+    }
+
+    .form-section {
+      animation: fadeIn 0.3s ease-in-out;
+    }
+
+    // CCCD Options Styles
+    .cccd-options {
+      margin: 1rem 0;
+    }
+
+    .option-title {
+      font-size: 0.85rem;
+      color: #8b6f5a;
+      margin-bottom: 0.75rem;
+      font-weight: 600;
+    }
+
+    .option-card {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      padding: 1rem;
+      margin-bottom: 0.75rem;
+      background: rgba(255, 253, 249, 0.9);
+      border: 2px solid rgba(140, 121, 104, 0.15);
+      border-radius: 14px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .option-card:hover {
+      border-color: #8b6f5a;
+      background: white;
+      box-shadow: 0 4px 12px rgba(139, 111, 90, 0.1);
+      transform: translateY(-1px);
+    }
+
+    .option-icon {
+      font-size: 1.75rem;
+      width: 48px;
+      height: 48px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(139, 111, 90, 0.1);
+      border-radius: 12px;
+    }
+
+    .option-content {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 0.25rem;
+    }
+
+    .option-content strong {
+      color: #3d3128;
+      font-size: 0.95rem;
+    }
+
+    .option-content span {
+      color: #8b6f5a;
+      font-size: 0.8rem;
+    }
+
+    // Aligned Preview Styles
+    .aligned-preview-container {
+      background: white;
+      border-radius: 16px;
+      padding: 1.25rem;
+      margin: 1rem 0;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+      animation: fadeIn 0.3s ease-in-out;
+    }
+
+    .aligned-preview-container h4 {
+      margin: 0 0 1rem;
+      color: #3d3128;
+      font-size: 1rem;
+    }
+
+    .aligned-image-wrapper {
+      display: flex;
+      justify-content: center;
+      background: #f5f5f5;
+      border-radius: 12px;
+      padding: 1rem;
+      margin-bottom: 1rem;
+    }
+
+    .aligned-image {
+      max-width: 100%;
+      max-height: 300px;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    }
+
+    .aligned-actions {
+      display: flex;
+      gap: 0.75rem;
+      justify-content: center;
     }
 
     .field {
@@ -348,6 +529,12 @@ export class ProfilePageComponent {
   readonly profile = signal<any | null>(null);
   readonly isEditing = signal(false);
   readonly scanningIdCard = signal(false);
+  readonly showCropper = signal(false);
+  readonly showAlignedPreview = signal(false);
+  readonly pythonBackendAvailable = signal(false);
+  selectedFile: File | null = null;
+  alignedImageBase64: string | null = null;
+  readonly detectionService = inject(CccdDetectionService);
   form = {
     firstName: '',
     lastName: '',
@@ -382,12 +569,27 @@ export class ProfilePageComponent {
   }
   cancel() {
     this.isEditing.set(false);
-  }
-  constructor() {
-    void this.load();
+    this.showCropper.set(false);
+    this.showAlignedPreview.set(false);
+    this.alignedImageBase64 = null;
+    this.selectedFile = null;
   }
 
-  async scanIdCard(event: Event): Promise<void> {
+  // ViewChild references for file inputs
+  @ViewChild('pythonFileInput') pythonFileInput!: ElementRef<HTMLInputElement>;
+  @ViewChild('manualFileInput') manualFileInput!: ElementRef<HTMLInputElement>;
+
+  // Trigger file inputs
+  triggerPythonFileInput(): void {
+    this.pythonFileInput?.nativeElement.click();
+  }
+
+  triggerManualFileInput(): void {
+    this.manualFileInput?.nativeElement.click();
+  }
+
+  // Python YOLO Detection methods
+  async onPythonFileSelected(event: Event): Promise<void> {
     const input = event.target as HTMLInputElement;
     const file = input.files?.[0];
     if (!file) return;
@@ -396,6 +598,107 @@ export class ProfilePageComponent {
     this.scanningIdCard.set(true);
 
     try {
+      // Call Python backend for detection + alignment
+      const result = await this.detectionService.alignCCCD(file, 0.5);
+
+      if (!result.success) {
+        this.error.set(result.message || 'Không phát hiện được CCCD trong ảnh');
+        return;
+      }
+
+      // Store the aligned image
+      this.alignedImageBase64 = result.aligned_image;
+      this.showAlignedPreview.set(true);
+      this.selectedFile = this.detectionService.base64ToFile(result.aligned_image, 'cccd_aligned.jpg');
+
+    } catch (err) {
+      this.error.set('Lỗi khi xử lý ảnh. Vui lòng đảm bảo Python backend đang chạy tại port 8000.');
+      console.error('Python detection error:', err);
+    } finally {
+      this.scanningIdCard.set(false);
+      input.value = '';
+    }
+  }
+
+  // Confirm aligned image and run OCR
+  async confirmAlignedImage(): Promise<void> {
+    if (!this.alignedImageBase64) return;
+
+    this.error.set('');
+    this.scanningIdCard.set(true);
+
+    try {
+      // Convert base64 to file and send to Java backend for OCR
+      const file = this.detectionService.base64ToFile(this.alignedImageBase64, 'cccd_aligned.jpg');
+      const data = await this.api.scanIdCardProfile(file);
+
+      // Update form with OCR data
+      this.form = {
+        ...this.form,
+        firstName: data.firstName ?? this.form.firstName,
+        lastName: data.lastName ?? this.form.lastName,
+        dob: data.dob ?? this.form.dob,
+        idNumber: data.idNumber ?? this.form.idNumber,
+        gender: data.gender ?? this.form.gender,
+        nationality: data.nationality ?? this.form.nationality,
+        placeOfOrigin: data.placeOfOrigin ?? this.form.placeOfOrigin,
+        placeOfResidence: data.placeOfResidence ?? this.form.placeOfResidence,
+        dateOfExpiry: data.dateOfExpiry ?? this.form.dateOfExpiry
+      };
+
+      // Hide preview and show form
+      this.showAlignedPreview.set(false);
+      this.alignedImageBase64 = null;
+
+    } catch (err) {
+      this.error.set(this.api.formatError(err, 'Không quét được thông tin CCCD từ ảnh đã căn chỉnh.'));
+    } finally {
+      this.scanningIdCard.set(false);
+    }
+  }
+
+  cancelAlignedPreview(): void {
+    this.showAlignedPreview.set(false);
+    this.alignedImageBase64 = null;
+    this.selectedFile = null;
+  }
+
+  // CCCD Cropper methods (Manual)
+  onFileSelected(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+    if (!file) return;
+
+    this.selectedFile = file;
+    this.showCropper.set(true);
+  }
+
+  onCccdCropped(imageData: Blob | string): void {
+    console.log('CCCD cropped for profile:', imageData);
+  }
+
+  async onCccdConfirm(event: { image: Blob | string; cccdNumber?: string }): Promise<void> {
+    this.error.set('');
+    this.scanningIdCard.set(true);
+
+    try {
+      // Convert blob to file for API
+      let file: File;
+      if (event.image instanceof Blob) {
+        file = new File([event.image], 'cccd.jpg', { type: 'image/jpeg' });
+      } else {
+        // Base64 case - convert to blob first
+        const base64Data = event.image.includes(',') ? event.image.split(',')[1] : event.image;
+        const byteCharacters = atob(base64Data);
+        const byteNumbers = new Array(byteCharacters.length);
+        for (let i = 0; i < byteCharacters.length; i++) {
+          byteNumbers[i] = byteCharacters.charCodeAt(i);
+        }
+        const byteArray = new Uint8Array(byteNumbers);
+        const blob = new Blob([byteArray], { type: 'image/jpeg' });
+        file = new File([blob], 'cccd.jpg', { type: 'image/jpeg' });
+      }
+
       const data = await this.api.scanIdCardProfile(file);
       this.form = {
         ...this.form,
@@ -409,12 +712,30 @@ export class ProfilePageComponent {
         placeOfResidence: data.placeOfResidence ?? this.form.placeOfResidence,
         dateOfExpiry: data.dateOfExpiry ?? this.form.dateOfExpiry
       };
+
+      // Hide cropper after successful scan
+      this.showCropper.set(false);
+      this.selectedFile = null;
     } catch (err) {
-      this.error.set(this.api.formatError(err, 'Khong quet duoc thong tin CCCD.'));
+      this.error.set(this.api.formatError(err, 'Không quét được thông tin CCCD.'));
     } finally {
       this.scanningIdCard.set(false);
-      input.value = '';
     }
+  }
+
+  cancelCrop(): void {
+    this.showCropper.set(false);
+    this.selectedFile = null;
+  }
+
+  constructor() {
+    void this.load();
+  }
+
+  // Legacy method - kept for compatibility if needed
+  async scanIdCard(event: Event): Promise<void> {
+    // Redirect to new flow
+    this.onFileSelected(event);
   }
 
   async save() {
