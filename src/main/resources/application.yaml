@@ -1,97 +1,237 @@
 server:
+
   port: 8080
+
   servlet:
+
     context-path:
 
+
+
+logging:
+
+  level:
+
+    org.apache.kafka: WARN
+
+    org.apache.kafka.clients: WARN
+
+    org.camunda: WARN
+
+    org.camunda.bpm: WARN
+
+
+
 spring:
+
   application:
+
     name: story
 
+  web:
+    cors:
+      allowed-origins: http://localhost:4200
+      allowed-methods: GET,POST,PUT,DELETE,OPTIONS
+      allowed-headers: "*"
+      allow-credentials: true
+
+
+
   datasource:
+
     url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:story_db}
+
     username: ${DB_USERNAME:postgres}
+
     password: ${DB_PASSWORD}
+
     driver-class-name: org.postgresql.Driver
 
+
+
   jpa:
+
     hibernate:
+
       ddl-auto: update
+
     properties:
+
       hibernate:
+
         format_sql: true
 
+
+
   jackson:
+
     serialization:
+
       write-dates-as-timestamps: false
 
+
+
   mail:
+
     host: ${MAIL_HOST:smtp.gmail.com}
+
     port: ${MAIL_PORT:587}
+
     username: ${MAIL_USERNAME}
+
     password: ${MAIL_PASSWORD}
+
     properties:
+
       mail:
+
         smtp:
+
           auth: true
+
           starttls:
+
             enable: true
+
             required: true
 
+
+
   security:
+
     oauth2:
+
       resource server:
+
         jwt:
+
           issuer-uri: ${KEYCLOAK_ISSUER_URI:http://localhost:8090/realms/story-app}
+
     client:
+
       registration:
+
         keycloak:
+
           client-id: ${KEYCLOAK_CLIENT_ID:story-app}
+
           client-secret: ${KEYCLOAK_CLIENT_SECRET}
+
           authorization-grant-type: authorization_code
+
           redirect-uri: "{baseUrl}/api/auth/google/callback"
+
           scope: openid,profile,email
 
+
+
       provider:
+
         keycloak:
+
           issuer-uri: ${KEYCLOAK_ISSUER_URI:http://localhost:8090/realms/story-app}
 
+
+
   kafka:
+
     enabled: true
+
     bootstrap-servers: localhost:9092
+
     consumer:
+
       group-id: story-service-group
+
       auto-offset-reset: earliest
+
       key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+
       value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+
     producer:
+
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
+
       value-serializer: org.apache.kafka.common.serialization.StringSerializer
 
+
+
+  data:
+
+    redis:
+
+      host: ${REDIS_HOST:localhost}
+
+      port: ${REDIS_PORT:6379}
+
+      password: ${REDIS_PASSWORD:}
+
+
+
+  cache:
+
+    type: redis
+
+    redis:
+
+      time-to-live: 600000
+
+      cache-null-values: false
+
+
+
 camunda:
+
   bpm:
+
     database:
+
       type: postgres
+
       schema-update: true
 
+
+
     admin-user:
+
       id: demo
+
       password: demo
+
+
 
     auto-deployment-enabled: true
 
+
+
     filter:
+
       create: All tasks
 
+
+
     history-level: full
+
     history-time-to-live: 30
 
+
+
     authorization:
+
       enabled: false
+
+
 
 idp:
   url: ${IDP_URL:http://localhost:8090}
+  realm: ${IDP_REALM:story-app}
   client-id: ${KEYCLOAK_CLIENT_ID:story-app}
   client-secret: ${KEYCLOAK_CLIENT_SECRET}
+
   token-url: ${IDP_TOKEN_URL:http://localhost:8090/realms/story-app/protocol/openid-connect/token}
+
   role-user-id: ${IDP_ROLE_USER_ID:3bf6a1cf-4660-4162-8ac9-925944c605cc}
+
+
 

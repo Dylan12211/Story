@@ -1,0 +1,92 @@
+<div class="reports-container">
+  <div class="ethereal-bg"></div>
+  <div class="reports-content-wrapper">
+    <header class="page-header">
+      <div class="header-content">
+        <h2 class="text-gradient">Báo cáo</h2>
+      </div>
+    </header>
+
+    <section class="reports-grid">
+      <section class="glass-card">
+        <p class="eyebrow">Table Selector</p>
+        <h3 class="panel-title">Bảng dữ liệu</h3>
+        <div class="table-list">
+          @for (table of tables; track table.key) {
+          <button
+            type="button"
+            class="table-item"
+            [class.active]="selectedTableKey() === table.key"
+            (click)="toggleTable(table.key)"
+          >
+            <div class="table-info">
+              <strong>{{ table.label }}</strong>
+              <p>{{ table.description }}</p>
+            </div>
+            <span class="badge" [class.warning]="!table.available">
+              {{ table.available ? 'sẵn dùng' : 'đang chờ' }}
+            </span>
+          </button>
+          }
+        </div>
+      </section>
+
+      <section class="glass-card">
+        <p class="eyebrow">Column Selector</p>
+        <h3 class="panel-title">Chọn các cột</h3>
+        <div class="column-list">
+          @for (column of selectedTable().columns; track column.key) {
+          <label class="column-item">
+            <input
+              type="checkbox"
+              [checked]="selectedColumns().includes(column.key)"
+              (change)="toggleColumn(column.key)"
+            />
+            <div class="column-info">
+              <strong>{{ column.label }}</strong>
+              <p>{{ column.description }}</p>
+            </div>
+          </label>
+          }
+        </div>
+      </section>
+
+      <section class="glass-card">
+        <p class="eyebrow">Export Actions</p>
+        <h3 class="panel-title">Xuất báo cáo</h3>
+
+        @if (error()) {
+        <div class="message error animate-shake">{{ error() }}</div>
+        }
+        @if (success()) {
+        <div class="message success animate-fade-in">{{ success() }}</div>
+        }
+
+        <div class="actions">
+          <button type="button" class="btn-fantasy btn-primary" (click)="export('pdf', 'preview')" [disabled]="busy()">
+<!--            <span class="material-icons">visibility</span>-->
+            Xem trước PDF
+          </button>
+          <button type="button" class="btn-fantasy btn-primary" (click)="export('pdf')" [disabled]="busy()">
+<!--            <span class="material-icons">picture_as_pdf</span>-->
+            {{ busy() ? 'Đang tải...' : 'Tải PDF' }}
+          </button>
+          <button type="button" class="btn-fantasy btn-outline" (click)="export('xlsx')" [disabled]="busy()">
+<!--            <span class="material-icons">table_view</span>-->
+            {{ busy() ? 'Đang tải...' : 'Tải Excel' }}
+          </button>
+        </div>
+
+        <div class="selection-summary">
+          <strong>Cột đang chọn:</strong>
+          <p class="table-name">{{ selectedTable().label }}</p>
+          <div class="column-chips">
+            @for (col of selectedColumns(); track col) {
+            <span class="chip">{{ col }}</span>
+            }
+          </div>
+        </div>
+      </section>
+    </section>
+  </div>
+</div>

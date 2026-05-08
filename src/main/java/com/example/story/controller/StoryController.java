@@ -61,7 +61,10 @@ public class StoryController {
 
     @PostMapping("/kafka/publish-rejected")
     public ResponseEntity<String> publishStoryRejected(@RequestBody StoryEvent event) {
-        storyProducer.publishStoryRejected(event.getStoryId(), event.getTitle(), event.getCreatedBy(),
+        storyProducer.publishStoryRejected(
+                event.getStoryId(),
+                event.getTitle(),
+                event.getCreatedBy(),
                 event.getMessage() != null ? event.getMessage() : "No reason provided");
         return ResponseEntity.ok("Story rejected event published to Kafka");
     }

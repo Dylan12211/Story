@@ -1,0 +1,224 @@
+<div class="workflow-container">
+  <header class="page-header">
+    <div class="header-content">
+      <h2 class="text-gradient">Workflow</h2>
+    </div>
+  </header>
+
+  <div class="message-area">
+    @if (error()) { <div class="message error animate-shake">{{ error() }}</div> }
+    @if (success()) { <div class="message success animate-fade-in">{{ success() }}</div> }
+  </div>
+
+  <section class="workflow-grid">
+    <!-- CREATE SECTION -->
+    <section class="glass-card create-section">
+      <p class="eyebrow">Khởi tạo truyền thuyết</p>
+      <h3 class="panel-title">Sáng tác mới</h3>
+      <form class="workflow-form" (ngSubmit)="startProcess()">
+        <div class="fantasy-input">
+          <label for="storyTitle">Tiêu đề truyện</label>
+          <input
+            id="storyTitle"
+            name="storyTitle"
+            [ngModel]="createModel().title"
+            (ngModelChange)="updateCreateField('title', $event)"
+            placeholder="Nhập tên tác phẩm..."
+          />
+        </div>
+        <div class="fantasy-input">
+          <label for="storyContent">Nội dung khởi đầu</label>
+          <textarea
+            id="storyContent"
+            rows="5"
+            name="storyContent"
+            [ngModel]="createModel().content"
+            (ngModelChange)="updateCreateField('content', $event)"
+            placeholder="Viết những dòng đầu tiên..."
+          ></textarea>
+        </div>
+        <button type="submit" class="btn-fantasy btn-primary" [disabled]="busy() || !createModel().title">
+          <!-- <span class="material-icons">auto_stories</span> -->
+          {{ busy() ? 'Đang khởi tạo...' : 'Khai mở tiến trình' }}
+        </button>
+      </form>
+    </section>
+
+    <!-- TASK QUEUE -->
+    <section class="glass-card task-queue">
+      <p class="eyebrow">Linh thức nhiệm vụ</p>
+      <h3 class="panel-title">Danh sách nhiệm vụ</h3>
+
+      <div class="task-list">
+        @if (filteredTasks().length) {
+        @for (task of pagedFilteredTasks(); track task.id) {
+        <button
+          type="button"
+          class="task-item"
+          [class.active]="selectedTask()?.id === task.id"
+          (click)="selectTask(task.id)"
+        >
+          <div class="task-info">
+            <strong>{{ task.variables?.title || task.name }}</strong>
+            <span class="step-type">{{ task.key === 'repairStory' ? 'Chỉnh sửa' : 'Duyệt bài' }}</span>
+          </div>
+          <div class="task-meta">
+                <span class="assignee">
+                  {{ task.assignee || 'Chưa ai nhận' }}
+                </span>
+            <span class="status-tag" [attr.data-status]="task.status">
+                  {{ getStatusText(task.status) }}
+                </span>
+          </div>
+        </button>
+        }
+
+        <div class="pagination">
+          <button class="btn-icon" (click)="prevTaskPage()" [disabled]="taskPage() === 1">
+            <span class="material-icons">left</span>
+          </button>
+          <span class="page-num">{{ taskPage() }}</span>
+          <button class="btn-icon" (click)="nextTaskPage()" [disabled]="taskPage() * pageSize >= filteredTasks().length">
+            <span class="material-icons">right</span>
+          </button>
+        </div>
+        } @else {
+        <div class="empty-state">
+          <!-- <span class="material-icons">inventory_2</span> -->
+          <p>Không có nhiệm vụ nào cần thực thi.</p>
+        </div>
+        }
+      </div>
+    </section>
+
+    <!-- TASK DETAIL / INSPECTOR -->
+    <section class="glass-card task-inspector">
+      <p class="eyebrow">Chi tiết truyền thừa</p>
+      <h3 class="panel-title">Hành trang nhiệm vụ</h3>
+
+      @if (selectedTask(); as task) {
+      <div class="inspector-panel animate-fade-in">
+        <div class="inspector-header">
+          <div class="inspector-title">
+            <strong>{{ task.name }}</strong>
+            <span class="task-id">ID: {{ task.id }}</span>
+          </div>
+          <span class="badge">{{ canReview() ? 'Duyệt thần thông' : 'Tu chỉnh nội dung' }}</span>
+        </div>
+
+        @if (!task.assignee) {
+        <button type="button" class="btn-fantasy btn-primary claim-btn" (click)="claimTask()">
+          <span class="material-icons">pan_tool</span>
+          Nhận trọng trách
+        </button>
+        } @else {
+        <div class="inspector-content">
+          @if (!canReview()) {
+          <div class="fantasy-input">
+            <label for="taskTitle">Tiêu đề tu chỉnh</label>
+            <input
+              id="taskTitle"
+              name="taskTitle"
+              [ngModel]="editorModel().title"
+              (ngModelChange)="updateEditorField('title', $event)"
+            />
+          </div>
+          <div class="fantasy-input">
+            <label for="taskContent">Nội dung tu chỉnh</label>
+            <textarea
+              id="taskContent"
+              rows="8"
+              name="taskContent"
+              [ngModel]="editorModel().content"
+              (ngModelChange)="updateEditorField('content', $event)"
+            ></textarea>
+          </div>
+          } @else {
+          <div class="review-switch">
+            <button type="button" [class.active]="editorModel().approved" (click)="setApproved(true)">
+              <span class="material-icons">check_circle</span>
+              Chấp thuận
+            </button>
+            <button type="button" [class.active]="!editorModel().approved" (click)="setApproved(false)">
+              <span class="material-icons">cancel</span>
+              Bác bỏ
+            </button>
+          </div>
+
+          <div class="preview-box">
+            <p class="preview-label">Xem trước linh thức:</p>
+            <div class="preview-content">
+              <strong>{{ editorModel().title || 'Tác phẩm vô danh' }}</strong>
+              <p>{{ editorModel().content || 'Chưa có nội dung để hiển thị.' }}</p>
+            </div>
+          </div>
+
+          @if (!editorModel().approved) {
+          <div class="fantasy-input animate-slide-down">
+            <label for="rejectReason">Lý do bác bỏ</label>
+            <input
+              id="rejectReason"
+              name="rejectReason"
+              [ngModel]="editorModel().rejectReason"
+              (ngModelChange)="updateEditorField('rejectReason', $event)"
+              placeholder="Ghi lại lý do không đạt..."
+            />
+          </div>
+          }
+          }
+
+          <button
+            type="button"
+            class="btn-fantasy btn-primary complete-btn"
+            (click)="completeTask()"
+            [disabled]="busy()"
+          >
+            <span class="material-icons">send</span>
+            {{ busy() ? 'Đang hoàn tất...' : 'Hoàn thành nhiệm vụ' }}
+          </button>
+        </div>
+        }
+      </div>
+      } @else {
+      <div class="empty-state">
+        <p>Hãy chọn một nhiệm vụ từ danh sách để xem chi tiết.</p>
+      </div>
+      }
+    </section>
+
+    <!-- STORY STATUS -->
+    <section class="glass-card story-list-full">
+      <p class="eyebrow">Tiến độ thần thông</p>
+      <h3 class="panel-title">Thư viện truyện</h3>
+
+      <div class="story-stack">
+        @if (stories().length) {
+        @for (story of pagedStories(); track story.id) {
+        <article class="story-art">
+          <div class="story-art-header">
+            <strong>{{ story.title }}</strong>
+            <span class="status-vial" [attr.data-status]="story.status">{{ story.status }}</span>
+          </div>
+          <p class="story-excerpt">{{ story.content }}</p>
+        </article>
+        }
+
+        <div class="pagination">
+          <button class="btn-icon" (click)="prevStoryPage()" [disabled]="storyPage() === 1">
+            <span class="material-icons">left</span>
+          </button>
+          <span class="page-num">{{ storyPage() }}</span>
+          <button class="btn-icon" (click)="nextStoryPage()" [disabled]="storyPage() * pageSize >= stories().length">
+            <span class="material-icons">right</span>
+          </button>
+        </div>
+        } @else {
+        <div class="empty-state">
+          <!-- <span class="material-icons">auto_stories</span> -->
+          <p>Đại thư viện hiện đang trống rỗng.</p>
+        </div>
+        }
+      </div>
+    </section>
+  </section>
+</div>

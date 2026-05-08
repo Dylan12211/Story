@@ -41,6 +41,24 @@ public class Profile {
 
     LocalDate dob;
 
+    @Column(name = "id_number", unique = true)
+    String idNumber;
+
+    @Column(name = "gender")
+    String gender;
+
+    @Column(name = "nationality")
+    String nationality;
+
+    @Column(name = "place_of_origin")
+    String placeOfOrigin;
+
+    @Column(name = "place_of_residence")
+    String placeOfResidence;
+
+    @Column(name = "date_of_expiry")
+    LocalDate dateOfExpiry;
+
     @OneToOne(cascade = CascadeType.ALL)
     @JoinColumn(name = "user_id", nullable = false)
     private User user;

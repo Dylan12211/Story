@@ -1,5 +1,7 @@
 package com.example.story.configuration;
 
+import jakarta.servlet.http.HttpServletRequest;
+
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
@@ -32,6 +34,10 @@ public class SecurityConfig {
                 .permitAll()
                 .requestMatchers("/api/auth/google/**")
                 .permitAll()
+                .requestMatchers("/api/auth/id-card-login")
+                .permitAll()
+                .requestMatchers("/api/auth/cccd/login")
+                .permitAll()
                 .requestMatchers(HttpMethod.POST, "/api/forgot-password")
                 .permitAll()
                 .requestMatchers("/api/admin/**")
@@ -42,7 +48,7 @@ public class SecurityConfig {
                 .hasRole("ADMIN")
                 .requestMatchers("/camunda/**")
                 .permitAll()
-//                              .requestMatchers("/api/reports/test").permitAll()
+                //                              .requestMatchers("/api/reports/test").permitAll()
                 .requestMatchers("/ws/**")
                 .permitAll()
                 .anyRequest()
@@ -53,6 +59,30 @@ public class SecurityConfig {
         http.csrf(AbstractHttpConfigurer::disable);
 
         return http.build();
+    }
+
+    @Bean
+    public SecurityFilterChain publicEndpointSecurityFilterChain(HttpSecurity http) throws Exception {
+        http.securityMatcher(request -> isPublicEndpoint(request))
+                .authorizeHttpRequests(auth -> auth.anyRequest().permitAll())
+                .csrf(AbstractHttpConfigurer::disable);
+
+        return http.build();
+    }
+
+    private boolean isPublicEndpoint(HttpServletRequest request) {
+        String path = request.getRequestURI();
+        String method = request.getMethod();
+        return path.equals("/register") && "POST".equals(method)
+                || path.startsWith("/api/users/")
+                || path.equals("/api/auth/validate")
+                || path.equals("/api/login")
+                || path.startsWith("/api/auth/google/")
+                || path.equals("/api/auth/id-card-login")
+                || path.equals("/api/auth/cccd/login")
+                || path.equals("/api/forgot-password") && "POST".equals(method)
+                || path.startsWith("/camunda/")
+                || path.startsWith("/ws/");
     }
 
     @Bean

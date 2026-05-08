@@ -1,0 +1,308 @@
+<main class="auth-portal-viewport">
+  <div class="stars-container"></div>
+  <div class="glow-sphere-top"></div>
+  <div class="glow-sphere-bottom"></div>
+
+  <section class="auth-container animate-fade-in">
+    <div class="glass-auth-card">
+
+      <!-- HEADER -->
+      <header class="auth-header">
+        <div class="brand-logo">
+<!--          <span class="material-icons portal-icon">auto_stories</span>-->
+        </div>
+        <h2 class="portal-title">Sangtacviet</h2>
+        <p class="eyebrow">Identity access portal</p>
+      </header>
+
+      <!-- TABS -->
+      <nav class="auth-tabs">
+        <button type="button"
+                class="tab-btn"
+                [class.active]="activeTab() === 'login' || activeTab() === 'id-card'"
+                (click)="switchToLogin()">
+<!--          <span class="material-icons">key</span>-->
+          Đăng nhập
+        </button>
+
+        <button type="button"
+                class="tab-btn"
+                [class.active]="activeTab() === 'register'"
+                (click)="activeTab.set('register')">
+<!--          <span class="material-icons">person_add</span>-->
+          Đăng ký
+        </button>
+
+        <button type="button"
+                class="tab-btn"
+                [class.active]="activeTab() === 'forgot'"
+                (click)="activeTab.set('forgot')">
+<!--          <span class="material-icons">help_outline</span>-->
+          Quên Mật Khẩu
+        </button>
+      </nav>
+
+      <!-- MESSAGES -->
+      <div class="status-messages">
+        @if (error()) {
+        <div class="message error-msg animate-shake">
+          <span class="material-icons">report_problem</span>
+          <span>{{ error() }}</span>
+        </div>
+        }
+        @if (success()) {
+        <div class="message success-msg animate-pulse">
+          <span class="material-icons">verified</span>
+          <span>{{ success() }}</span>
+        </div>
+        }
+      </div>
+
+      <!-- FORMS WRAPPER -->
+      <div class="auth-content-area">
+
+        <!-- LOGIN FORM -->
+        @if (activeTab() === 'login') {
+        <form class="fantasy-form" (ngSubmit)="login()">
+          <div class="form-group">
+            <label for="username">Tên truy cập</label>
+            <div class="input-container">
+<!--              <span class="material-icons prefix">account_circle</span>-->
+              <input
+                id="username"
+                name="username"
+                [ngModel]="loginModel().username"
+                (ngModelChange)="updateLoginField('username', $event)"
+                placeholder="Username của bạn..."
+              />
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="password">Mật chú</label>
+            <div class="input-container">
+<!--              <span class="material-icons prefix">lock</span>-->
+              <input
+                id="password"
+                type="password"
+                name="password"
+                [ngModel]="loginModel().password"
+                (ngModelChange)="updateLoginField('password', $event)"
+                placeholder="••••••••"
+              />
+            </div>
+          </div>
+
+          <button type="submit" class="btn-primary-glow" [disabled]="busy()">
+            @if (busy()) {
+            <span class="loader"></span>
+            Đang xác thực...
+            } @else {
+            <span>Đăng nhập</span>
+<!--            <span class="material-icons">login</span>-->
+            }
+          </button>
+
+          <div class="divider">
+            <span>Hoặc thần thức khác</span>
+          </div>
+
+          <button type="button" class="btn-id-card" (click)="switchToIdCard()">
+<!--            <span class="material-icons">screenshot_monitor</span>-->
+            Xác thực bằng CCCD
+          </button>
+        </form>
+        }
+
+        <!-- ID CARD FLOW -->
+        @if (activeTab() === 'id-card') {
+        <div class="cccd-flow-container">
+          <button type="button" class="btn-back" (click)="switchToLogin()">
+<!--            <span class="material-icons">arrow_back</span>-->
+            Quay lại
+          </button>
+
+          <!-- UPLOAD -->
+          @if (cccdStep() === 'upload') {
+          <div class="upload-zone animate-zoom"
+               role="button"
+               tabindex="0"
+               (click)="triggerFileInput()"
+               (keydown.enter)="triggerFileInput()">
+            <input
+              type="file"
+              #fileInput
+              accept="image/*"
+              (change)="onCccdFileSelected($event)"
+              hidden
+            />
+<!--            <div class="upload-icon-box">-->
+<!--              <span class="material-icons">file_upload</span>-->
+<!--            </div>-->
+            <h3>Khai báo CCCD</h3>
+            <p>Nhấn để chọn ảnh hoặc kéo thả vào đây</p>
+            <small>JPG, PNG • Max 10MB</small>
+          </div>
+          }
+
+          <!-- DETECT / PREVIEW -->
+          @if (cccdStep() === 'detect' || cccdStep() === 'preview') {
+          <div class="preview-zone animate-slide-up">
+            <div class="zone-header">
+              <span class="material-icons">visibility</span>
+              <h4>Nhận diện pháp bảo</h4>
+            </div>
+
+            <div class="image-frame">
+              @if (detectionResult()?.preview_image) {
+              <img [src]="detectionResult()?.preview_image" alt="CCCD Detected" />
+              <div class="scanning-line"></div>
+              }
+            </div>
+
+            @if (detectionResult()?.detection) {
+            <div class="confidence-bar">
+              <div class="bar-fill" [style.width.%]="(detectionResult()?.detection?.confidence || 0) * 100"></div>
+              <span>Độ chuẩn xác: {{ (detectionResult()?.detection?.confidence || 0) * 100 | number:'1.0-0' }}%</span>
+            </div>
+            }
+
+            <div class="flow-actions">
+              <button type="button" class="btn-outline" (click)="resetCccdFlow()">
+                Đổi ảnh
+              </button>
+              <button type="button" class="btn-primary-simple" (click)="alignCccdImage()" [disabled]="busy()">
+                {{ busy() ? 'Đang luyện hóa...' : 'Tiếp tục' }}
+              </button>
+            </div>
+          </div>
+          }
+
+          <!-- ALIGNED -->
+          @if (cccdStep() === 'aligned') {
+          <div class="aligned-zone animate-slide-up">
+            <div class="zone-header">
+              <span class="material-icons">task_alt</span>
+              <h4>Linh căn đã sẵn sàng</h4>
+            </div>
+
+            <div class="image-frame aligned-success">
+              @if (alignedImage()) {
+              <img [src]="alignedImage()" alt="CCCD Aligned" />
+              }
+            </div>
+
+            <div class="flow-actions">
+              <button type="button" class="btn-outline" (click)="resetCccdFlow()">
+                Làm lại
+              </button>
+              <button type="button" class="btn-success-glow" (click)="loginWithAlignedImage()" [disabled]="busy()">
+                {{ busy() ? 'Đang đăng nhập...' : 'Đăng nhập ngay' }}
+              </button>
+            </div>
+          </div>
+          }
+        </div>
+        }
+
+        <!-- REGISTER FORM -->
+        @if (activeTab() === 'register') {
+        <form class="fantasy-form register-grid" (ngSubmit)="register()">
+          <div class="form-group">
+            <label for="regUsername">Đạo hiệu (Username)</label>
+            <input
+              id="regUsername"
+              name="registerUsername"
+              [ngModel]="registerModel().username"
+              (ngModelChange)="updateRegisterField('username', $event)"
+            />
+          </div>
+          <div class="form-group">
+            <label for="regPass">Mật chỉ (Password)</label>
+            <input
+              id="regPass"
+              type="password"
+              name="registerPassword"
+              [ngModel]="registerModel().password"
+              (ngModelChange)="updateRegisterField('password', $event)"
+            />
+          </div>
+          <div class="form-group full-width">
+            <label for="regEmail">Thần văn (Email)</label>
+            <input
+              id="regEmail"
+              name="registerEmail"
+              [ngModel]="registerModel().email"
+              (ngModelChange)="updateRegisterField('email', $event)"
+              placeholder="email@example.com"
+            />
+          </div>
+          <div class="form-group">
+            <label for="regFirst">Danh (First Name)</label>
+            <input
+              id="regFirst"
+              name="registerFirstName"
+              [ngModel]="registerModel().firstName"
+              (ngModelChange)="updateRegisterField('firstName', $event)"
+            />
+          </div>
+          <div class="form-group">
+            <label for="regLast">Tánh (Last Name)</label>
+            <input
+              id="regLast"
+              name="registerLastName"
+              [ngModel]="registerModel().lastName"
+              (ngModelChange)="updateRegisterField('lastName', $event)"
+            />
+          </div>
+          <div class="form-group full-width">
+            <label for="regDob">Ngày xuất thế (DOB)</label>
+            <input
+              id="regDob"
+              type="date"
+              name="registerDob"
+              [ngModel]="registerModel().dob"
+              (ngModelChange)="updateRegisterField('dob', $event)"
+            />
+          </div>
+
+          <button type="submit" class="btn-primary-glow full-width" [disabled]="busy()">
+            {{ busy() ? 'Đang tạo linh căn...' : 'Khai tông lập phái' }}
+          </button>
+        </form>
+        }
+
+        <!-- FORGOT FORM -->
+        @if (activeTab() === 'forgot') {
+        <form class="fantasy-form" (ngSubmit)="forgotPassword()">
+          <div class="form-group">
+            <label for="forgotEmail">Email đã đăng ký</label>
+            <div class="input-container">
+<!--              <span class="material-icons prefix">mail</span>-->
+              <input
+                id="forgotEmail"
+                type="email"
+                name="forgotEmail"
+                [ngModel]="forgotEmail()"
+                (ngModelChange)="forgotEmail.set($event)"
+                placeholder="Nhập email của bạn..."
+              />
+            </div>
+          </div>
+          <p class="form-hint">Chúng tôi sẽ gửi một luồng linh khí khôi phục đến email của bạn.</p>
+          <button type="submit" class="btn-primary-glow" [disabled]="busy()">
+            {{ busy() ? 'Đang thực hiện...' : 'Triệu hồi mật mã' }}
+          </button>
+        </form>
+        }
+
+      </div>
+
+      <!-- FOOTER -->
+      <footer class="auth-footer">
+        <p>&copy; 2026 Sangtacviet • Huyền thoại trong từng chữ</p>
+      </footer>
+
+    </div>
+  </section>
+</main>

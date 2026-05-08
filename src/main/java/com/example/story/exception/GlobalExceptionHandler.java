@@ -1,5 +1,7 @@
 package com.example.story.exception;
 
+import static org.springframework.http.HttpStatus.*;
+
 import java.util.Map;
 import java.util.Objects;
 
@@ -89,9 +91,20 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(HttpClientErrorException.class)
     public ResponseEntity<?> handleHttpClientError(HttpClientErrorException e) {
-        log.error("KEYCLOAK ERROR BODY: {}", e.getResponseBodyAsString());
+        String errorBody = e.getResponseBodyAsString();
+        log.error("KEYCLOAK ERROR ({}): {} - Body: {}", e.getStatusCode(), e.getMessage(), errorBody);
 
-        return ResponseEntity.status(e.getStatusCode()).body(e.getResponseBodyAsString());
+        // Try to provide a more user-friendly error message
+        String userMessage =
+                switch (e.getStatusCode()) {
+                    case UNAUTHORIZED -> "Lỗi xác thực: Vui lòng kiểm tra lại tên đăng nhập và mật khẩu";
+                    case BAD_REQUEST -> "Yêu cầu không hợp lệ: " + errorBody;
+                    case FORBIDDEN -> "Truy cập bị từ chối: Bạn không có quyền thực hiện thao tác này";
+                    case NOT_FOUND -> "Dịch vụ không tìm thấy: Vui lòng kiểm tra cấu hình Keycloak";
+                    default -> "Lỗi Keycloak: " + e.getStatusCode();
+                };
+
+        return ResponseEntity.status(e.getStatusCode()).body(Map.of("error", userMessage, "details", errorBody));
     }
 
     // Helper map attribute cho validation message

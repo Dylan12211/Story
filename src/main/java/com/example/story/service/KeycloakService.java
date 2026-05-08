@@ -19,7 +19,7 @@ public class KeycloakService {
     @Value("${idp.url}")
     private String keycloakUrl;
 
-    @Value("${idp.client-id}")
+    @Value("${idp.realm}")
     private String realm;
 
     @Value("${idp.client-id}")
@@ -92,7 +92,7 @@ public class KeycloakService {
     }
 
     public void sendResetPasswordEmail(String userId, String token) {
-        String url = keycloakUrl + "/admin/realms/story-app/users/" + userId + "/execute-actions-email";
+        String url = keycloakUrl + "/admin/realms/" + realm + "/users/" + userId + "/execute-actions-email";
         RestTemplate rest = new RestTemplate();
 
         HttpHeaders headers = new HttpHeaders();

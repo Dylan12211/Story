@@ -2,8 +2,8 @@ version: '3.8'
 
 services:
   postgres:
-    image: postgres:18
-    container_name: provider-postgres
+    image: postgres:16
+    container_name: keycloak-postgres
     restart: always
     environment:
       POSTGRES_DB: keycloak_db
@@ -12,12 +12,18 @@ services:
     ports:
       - "5432:5432"
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - postgres_data:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d keycloak_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
 
   keycloak:
-    image: quay.io/keycloak/keycloak:24.0.2
+    image: quay.io/keycloak/keycloak:26.5.4
     container_name: keycloak
-    command: start
+    command: start-dev
     restart: always
     environment:
       KEYCLOAK_ADMIN: admin
@@ -28,13 +34,15 @@ services:
       KC_DB_USERNAME: postgres
       KC_DB_PASSWORD: 251103
       KC_DB_DRIVER: org.postgresql.Driver
+      QUARKUS_DATASOURCE_JDBC_ENABLE_XA: false
 
     ports:
       - "8090:8080"
     volumes:
       - ./providers:/opt/keycloak/providers
     depends_on:
-      - postgres
+      postgres:
+        condition: service_healthy
 
 volumes:
   postgres_data:

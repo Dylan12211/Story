@@ -1,0 +1,119 @@
+<div class="kafka-portal-wrapper animate-fade-in">
+  <div class="ethereal-bg"></div>
+
+  <section class="kafka-grid">
+    <!-- Feedback Messages -->
+    @if (error() || success()) {
+    <div class="feedback-area">
+      @if (error()) {
+      <div class="toast error animate-shake">
+        <span class="material-icons">dangerous</span>
+        <span>{{ error() }}</span>
+      </div>
+      }
+      @if (success()) {
+      <div class="toast success animate-pulse">
+        <span class="material-icons">auto_awesome</span>
+        <span>{{ success() }}</span>
+      </div>
+      }
+    </div>
+    }
+
+    <!-- Event Controls -->
+    <section class="glass-card controller-panel animate-slide-up">
+      <header class="panel-header">
+        <p class="eyebrow">Dimensional Hub</p>
+        <h3 class="panel-title">Giao thức Kafka Events</h3>
+      </header>
+
+      <div class="form-container">
+        <div class="input-grid">
+          <div class="fantasy-input">
+            <label for="eventType">Thiên Tính (Event Type)</label>
+            <div class="select-wrapper">
+              <select id="eventType" [ngModel]="eventType()" (ngModelChange)="eventType.set($event); onEventTypeChange()">
+                <option value="">-- Chọn bí pháp --</option>
+                <option [value]="StoryEventType.STORY_CREATED">MỚI KHAI SINH (CREATED)</option>
+                <option [value]="StoryEventType.STORY_UPDATED">BIẾN CHUYỂN (UPDATED)</option>
+                <option [value]="StoryEventType.STORY_SUBMITTED">DÂNG TRUYỆN (SUBMITTED)</option>
+                <option [value]="StoryEventType.STORY_APPROVED">THÔNG QUA (APPROVED)</option>
+                <option [value]="StoryEventType.STORY_REJECTED">BÁC BỎ (REJECTED)</option>
+                <option [value]="StoryEventType.STORY_PUBLISHED">XUẤT THẾ (PUBLISHED)</option>
+                <option [value]="StoryEventType.STORY_DELETED">HƯ VÔ (DELETED)</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="fantasy-input">
+            <label for="storyId">Pháp Ấn (Story ID)</label>
+            <input id="storyId" type="number" [ngModel]="storyId()" (ngModelChange)="storyId.set($event)" placeholder="VD: 1001" />
+          </div>
+
+          <div class="fantasy-input full-width">
+            <label for="title">Tên Truyện Bản (Title)</label>
+            <input id="title" type="text" [ngModel]="title()" (ngModelChange)="title.set($event)" placeholder="Huyền thoại vĩnh hằng..." />
+          </div>
+
+          <div class="fantasy-input">
+            <label for="createdBy">Người Thi triển (Created By)</label>
+            <input id="createdBy" type="text" [ngModel]="createdBy()" (ngModelChange)="createdBy.set($event)" placeholder="cuongdo0168" />
+          </div>
+
+          @if (eventType() === StoryEventType.STORY_REJECTED) {
+          <div class="fantasy-input animate-zoom">
+            <label for="rejectReason">Lý Do Truất Quyền (Reject Reason)</label>
+            <input id="rejectReason" type="text" [ngModel]="rejectReason()" (ngModelChange)="rejectReason.set($event)" placeholder="Chưa đủ linh khí..." />
+          </div>
+          }
+
+          <div class="fantasy-input full-width">
+            <label for="message">Thông Điệp Truyền Tin (Message)</label>
+            <input id="message" type="text" [ngModel]="message()" (ngModelChange)="message.set($event)" placeholder="Tùy chọn ghi chú cho pháp trận..." />
+          </div>
+        </div>
+
+        <div class="actions">
+          <button type="button" class="btn-fantasy btn-outline" (click)="sendTestEvent()" [disabled]="loading()">
+            <span class="material-icons">science</span>
+            Thử nghiệm (Generic)
+          </button>
+          <button type="button" class="btn-fantasy btn-primary" (click)="sendSpecificEvent()" [disabled]="loading()">
+            <span class="material-icons">send</span>
+            Kích hoạt Kafka Portal
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Logs Panel -->
+    <section class="glass-card logs-panel animate-slide-up" style="animation-delay: 0.1s">
+      <header class="panel-header">
+        <p class="eyebrow">Oracle Feedback</p>
+        <h3 class="panel-title">Thiên Thư Ghi Chép (Logs)</h3>
+      </header>
+
+      <div class="log-viewport">
+        @if (logs().length) {
+        @for (log of logs(); track log.time) {
+        <div class="log-row" [class.error-row]="log.type === 'ERROR'">
+          <div class="log-indicator"></div>
+          <div class="log-content">
+            <div class="log-header">
+              <span class="l-time">{{ log.time }}</span>
+              <span class="l-type">{{ log.type }}</span>
+            </div>
+            <p class="l-msg">{{ log.message }}</p>
+          </div>
+        </div>
+        }
+        } @else {
+        <div class="empty-logs">
+          <span class="material-icons">history_toggle_off</span>
+          <p>Trang sử còn trống. Hãy thi triển pháp thuật Kafka.</p>
+        </div>
+        }
+      </div>
+    </section>
+  </section>
+</div>

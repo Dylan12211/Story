@@ -1,9 +1,5 @@
 package com.example.story.service;
 
-import java.util.Base64;
-
-import jakarta.transaction.Transactional;
-
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.*;
 import org.springframework.stereotype.Service;
@@ -13,11 +9,7 @@ import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestTemplate;
 
 import com.example.story.dto.request.LoginRequest;
-import com.example.story.entity.Profile;
-import com.example.story.entity.User;
 import com.example.story.repository.UserRepository;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -41,6 +33,10 @@ public class LoginService {
     private String tokenUrl;
 
     public String login(LoginRequest loginRequest) {
+        // Debug: Log giá trị config
+        log.info("Keycloak Config - clientId: {}, tokenUrl: {}", clientId, tokenUrl);
+        log.debug("Keycloak Config - clientSecret length: {}", clientSecret != null ? clientSecret.length() : 0);
+
         // 1. Chuẩn bị dữ liệu gửi sang Keycloak
         MultiValueMap<String, String> params = new LinkedMultiValueMap<>();
         params.add("client_id", clientId);
@@ -55,74 +51,28 @@ public class LoginService {
         HttpEntity<MultiValueMap<String, String>> request = new HttpEntity<>(params, headers);
 
         try {
-            // 2. Gọi Keycloak để lấy Token
+            // 2. Gọi Keycloak để lấy Token (Remote Provider sẽ query backend API)
             ResponseEntity<String> response = restTemplate.postForEntity(tokenUrl, request, String.class);
             String responseBody = response.getBody();
 
-            log.info("Đăng nhập Keycloak thành công cho user: {}", loginRequest.getUsername());
+            log.info(
+                    "Đăng nhập Keycloak thành công cho user: {}, Status: {}",
+                    loginRequest.getUsername(),
+                    response.getStatusCode());
 
-            // 3. THỰC HIỆN ĐỒNG BỘ (LAZY SYNC)
-            syncUserToPostgres(responseBody, loginRequest.getUsername());
+            if (responseBody == null || responseBody.trim().isEmpty()) {
+                throw new RuntimeException("Keycloak trả về response rỗng");
+            }
 
             return responseBody; // Trả về JSON chứa access_token cho Controller
         } catch (HttpClientErrorException e) {
-            log.error("LỖI KEYCLOAK ({}): {}", e.getStatusCode(), e.getResponseBodyAsString());
-            throw e;
+            log.error(
+                    "LỖI KEYCLOAK ({}): {} - Body: {}", e.getStatusCode(), e.getMessage(), e.getResponseBodyAsString());
+            throw new RuntimeException("Lỗi xác thực Keycloak: " + e.getStatusCode());
         } catch (Exception e) {
-            log.error("Lỗi hệ thống khi xử lý đăng nhập: {}", e.getMessage());
-            throw new RuntimeException("Đăng nhập thất bại do lỗi hệ thống.");
-        }
-    }
-
-    @Transactional
-    public void syncUserToPostgres(String jsonResponse, String username) {
-        try {
-            ObjectMapper mapper = new ObjectMapper();
-            JsonNode node = mapper.readTree(jsonResponse);
-            String accessToken = node.get("access_token").asText();
-
-            // Giải mã Payload JWT
-            String[] chunks = accessToken.split("\\.");
-            String payload = new String(Base64.getUrlDecoder().decode(chunks[1]));
-            JsonNode payloadNode = mapper.readTree(payload);
-
-            String keycloakId = payloadNode.get("sub").asText();
-            String email = payloadNode.has("email") ? payloadNode.get("email").asText() : "";
-
-            String firstName = payloadNode.has("given_name")
-                    ? payloadNode.get("given_name").asText()
-                    : "";
-            String lastName = payloadNode.has("family_name")
-                    ? payloadNode.get("family_name").asText()
-                    : "";
-
-            if (email != null && !email.isBlank()
-                    && userRepository.findByEmail(email).isEmpty()) {
-
-                log.info("Tạo mới User và Profile cho: {}", username);
-
-                User newUser = User.builder()
-                        .id(keycloakId)
-                        .username(username)
-                        .email(email)
-                        .build();
-
-                Profile newProfile = Profile.builder()
-                        .username(username)
-                        .email(email)
-                        .firstName(firstName)
-                        .lastName(lastName)
-                        .user(newUser)
-                        .build();
-
-                newUser.setProfile(newProfile);
-                userRepository.save(newUser);
-
-                log.info("Đã đồng bộ User và Profile thành công!");
-            }
-        } catch (Exception e) {
-            log.error("Lỗi đồng bộ User/Profile: {}", e.getMessage());
-            throw new RuntimeException("Sync failed", e);
+            log.error(
+                    "Lỗi hệ thống khi xử lý đăng nhập cho user {}: {}", loginRequest.getUsername(), e.getMessage(), e);
+            throw new RuntimeException("Đăng nhập thất bại do lỗi hệ thống: " + e.getMessage());
         }
     }
 }

@@ -4,7 +4,6 @@ import java.time.LocalDate;
 import java.util.List;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
-import org.springframework.format.annotation.DateTimeFormat;
 
 import lombok.*;
 import lombok.experimental.FieldDefaults;
@@ -26,6 +25,15 @@ public class ProfileResponse {
 
     @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd")
     LocalDate dob;
+
+    String idNumber;
+    String gender;
+    String nationality;
+    String placeOfOrigin;
+    String placeOfResidence;
+
+    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd")
+    LocalDate dateOfExpiry;
 
     List<String> roles;
 }

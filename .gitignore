@@ -36,3 +36,5 @@ build/
 .env
 .env.local
 .env.*.local
+
+model_OCR/vgg_transformer.pth

@@ -1,0 +1,172 @@
+<div class="dashboard-portal-wrapper animate-fade-in">
+  <div class="star-overlay"></div>
+
+  @if (error()) {
+  <div class="feedback-toast">
+    <span class="material-icons">error_outline</span>
+    <span>{{ error() }}</span>
+  </div>
+  }
+
+  <section class="dashboard-grid">
+    <!-- HERO SECTION -->
+    <section class="hero-card animate-slide-up">
+      <div class="hero-glow"></div>
+      <div class="hero-content">
+        <div class="user-profile">
+          <div class="avatar-glow">
+            <img src="https://picsum.photos/seed/user/100" alt="Avatar" referrerpolicy="no-referrer">
+          </div>
+          <div class="user-meta">
+            <span class="eyebrow">Chào mừng trở lại,</span>
+            <h2 class="user-name text-gradient">{{ profileName() || (auth.session()?.username || 'Guest') }}</h2>
+            <div class="role-badge" [class.admin-role]="canManageUsers()">
+<!--              <span class="material-icons">-->
+<!--                {{ canManageUsers() ? 'shield' : 'person' }}-->
+<!--              </span>-->
+              {{ canManageUsers() ? 'Administrator' : 'Chí tôn độc giả' }}
+            </div>
+          </div>
+        </div>
+
+        <div class="hero-actions">
+          <a routerLink="/portal/workflow" class="btn-fantasy btn-violet">
+<!--            <span class="material-icons">auto_fix_high</span>-->
+            Mở Workflow
+          </a>
+          <a routerLink="/portal/reports" class="btn-fantasy btn-outline">
+<!--            <span class="material-icons">bar_chart</span>-->
+            Report Builder
+          </a>
+        </div>
+      </div>
+    </section>
+
+    <!-- STATS GRID -->
+    <section class="stats-glass-card animate-slide-up" style="animation-delay: 0.1s">
+      <div class="stats-header">
+        <p class="eyebrow">Realtime Oracle</p>
+        <h3>Thống kê</h3>
+      </div>
+      <div class="stats-grid">
+        <article class="stat-item">
+<!--          <div class="stat-icon purple-tint">-->
+<!--            <span class="material-icons">menu_book</span>-->
+<!--          </div>-->
+          <div class="stat-data">
+            <strong>{{ stats().totalStories }}</strong>
+            <span>Tổng truyện bản</span>
+          </div>
+        </article>
+        <article class="stat-item">
+<!--          <div class="stat-icon green-tint">-->
+<!--            <span class="material-icons">auto_awesome</span>-->
+<!--          </div>-->
+          <div class="stat-data">
+            <strong>{{ stats().publishedStories }}</strong>
+            <span>Đã xuất bản</span>
+          </div>
+        </article>
+        <article class="stat-item">
+<!--          <div class="stat-icon orange-tint">-->
+<!--            <span class="material-icons">hourglass_empty</span>-->
+<!--          </div>-->
+          <div class="stat-data">
+            <strong>{{ stats().pendingStories }}</strong>
+            <span>Đang chờ duyệt</span>
+          </div>
+        </article>
+        <article class="stat-item">
+<!--          <div class="stat-icon blue-tint">-->
+<!--            <span class="material-icons">assignment</span>-->
+<!--          </div>-->
+          <div class="stat-data">
+            <strong>{{ stats().totalTasks }}</strong>
+            <span>Task thực thi</span>
+          </div>
+        </article>
+      </div>
+    </section>
+
+    <!-- RECENT STORIES -->
+    <section class="glass-card story-section animate-slide-up" style="animation-delay: 0.2s">
+      <div class="card-header">
+        <p class="eyebrow">Library</p>
+        <h3>Truyện gần đây</h3>
+      </div>
+
+      @if (stories().length) {
+      <div class="stack">
+        @for (story of stories().slice(0, 4); track story.id) {
+        <article class="story-item">
+          <div class="story-number">0{{ $index + 1 }}</div>
+          <div class="story-info">
+            <div class="info-top">
+              <strong>{{ story.title }}</strong>
+              <span class="status-chip" [attr.data-status]="story.status">
+                    {{ story.status }}
+                  </span>
+            </div>
+            <p class="story-preview">{{ story.content }}</p>
+          </div>
+<!--          <button class="btn-icon">-->
+<!--            <span class="material-icons">chevron_right</span>-->
+<!--          </button>-->
+        </article>
+        }
+      </div>
+      } @else {
+      <ng-container *ngTemplateOutlet="noStories"></ng-container>
+      }
+    </section>
+
+    <!-- TASK QUEUE -->
+    <section class="glass-card task-section animate-slide-up" style="animation-delay: 0.3s">
+      <div class="card-header">
+        <p class="eyebrow">Queue</p>
+        <h3>Nhiệm vụ cần xử lý</h3>
+      </div>
+
+      @if (tasks().length) {
+      <div class="stack">
+        @for (task of tasks().slice(0, 5); track task.id) {
+        <article class="task-item">
+          <div class="task-accent"></div>
+          <div class="task-content">
+            <div class="task-top">
+              <strong>{{ task.name }}</strong>
+              <div class="assignee-tag">
+<!--                <span class="material-icons">account_circle</span>-->
+                {{ task.assignee || 'Đang chờ' }}
+              </div>
+            </div>
+            <div class="task-bottom">
+                  <span class="task-key">
+<!--                    <span class="material-icons">vibration</span>-->
+                    {{ task.key }}
+                  </span>
+            </div>
+          </div>
+        </article>
+        }
+      </div>
+      } @else {
+      <ng-container *ngTemplateOutlet="noTasks"></ng-container>
+      }
+    </section>
+  </section>
+</div>
+
+<ng-template #noStories>
+  <div class="empty-state-fantasy">
+    <!-- <span class="material-icons">auto_stories</span> -->
+    <p>Kho tàng truyện bản hiện đang trống rỗng.</p>
+  </div>
+</ng-template>
+
+<ng-template #noTasks>
+  <div class="empty-state-fantasy">
+    <!-- <span class="material-icons">hotel_class</span> -->
+    <p>Yên bình lạ thường. Không có nhiệm vụ nào cần xử lý lúc này.</p>
+  </div>
+</ng-template>

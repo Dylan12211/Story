@@ -2,6 +2,7 @@ package com.example.story.service;
 
 import java.util.List;
 
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Sort;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.oauth2.jwt.Jwt;
@@ -34,6 +35,7 @@ public class StoryService {
         return authentication.getName();
     }
 
+    @Cacheable(value = "stories", key = "#authentication.name + ':all'")
     public List<Story> getStoriesForUser(Authentication authentication) {
         boolean isAdmin = authentication.getAuthorities().stream()
                 .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
@@ -44,24 +46,22 @@ public class StoryService {
 
         String username = getCurrentUsername(authentication);
 
-        return storyRepository.findByCreatedBy(
-                username,
-                Sort.by(Sort.Direction.DESC, "id")
-        );
+        return storyRepository.findByCreatedBy(username, Sort.by(Sort.Direction.DESC, "id"));
     }
 
+    @Cacheable(value = "story", key = "#id")
     public Story getStoryByIdForUser(Long id, Authentication authentication) {
         boolean isAdmin = authentication.getAuthorities().stream()
                 .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
 
         if (isAdmin) {
-            return storyRepository.findById(id)
-                    .orElseThrow(() -> new RuntimeException("Story not found"));
+            return storyRepository.findById(id).orElseThrow(() -> new RuntimeException("Story not found"));
         }
 
         String username = getCurrentUsername(authentication);
 
-        return storyRepository.findByIdAndCreatedBy(id, username)
+        return storyRepository
+                .findByIdAndCreatedBy(id, username)
                 .orElseThrow(() -> new RuntimeException("Story not found"));
     }
 }

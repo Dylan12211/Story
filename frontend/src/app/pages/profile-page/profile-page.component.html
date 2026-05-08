@@ -1,0 +1,223 @@
+<div class="profile-portal-wrapper animate-fade-in">
+  <div class="ethereal-bg"></div>
+
+  <section class="profile-grid">
+    @if (error()) {
+    <div class="feedback-toast error">
+      <span class="material-icons">error_outline</span>
+      <span>{{ error() }}</span>
+    </div>
+    }
+
+    <!-- PROFILE VIEW -->
+    @if (profile(); as currentProfile) {
+    @if (!isEditing()) {
+    <section class="glass-card profile-details animate-slide-up">
+      <header class="panel-header">
+        <p class="eyebrow">Thánh Điện Thông Tin</p>
+        <h3 class="panel-title">Hồ Sơ Tu Hành</h3>
+      </header>
+
+      <div class="detail-grid">
+        <div class="detail-item">
+          <span class="label">Pháp Danh (Username)</span>
+          <strong class="value">{{ currentProfile['username'] }}</strong>
+        </div>
+        <div class="detail-item">
+          <span class="label">Lạc Khoản (Email)</span>
+          <strong class="value">{{ currentProfile['email'] }}</strong>
+        </div>
+        <div class="detail-item">
+          <span class="label">Danh Tính (Họ Tên)</span>
+          <strong class="value text-gradient">{{ currentProfile['firstName'] }} {{ currentProfile['lastName'] }}</strong>
+        </div>
+        <div class="detail-item">
+          <span class="label">Ngày Nhập Đạo (Ngày sinh)</span>
+          <strong class="value">{{ currentProfile['dob'] | date:'dd/MM/yyyy' }}</strong>
+        </div>
+
+        @if (currentProfile['idNumber']) {
+        <div class="detail-item full-width highlight-item">
+          <span class="label">Số Căn Cước Công Dân</span>
+          <strong class="value">{{ currentProfile['idNumber'] }}</strong>
+        </div>
+        }
+
+        <div class="detail-item">
+          <span class="label">Giới Tính</span>
+          <strong class="value">{{ currentProfile['gender'] }}</strong>
+        </div>
+        <div class="detail-item">
+          <span class="label">Quốc Tịch</span>
+          <strong class="value">{{ currentProfile['nationality'] }}</strong>
+        </div>
+
+        <div class="detail-item full-width">
+          <span class="label">Quê Quán</span>
+          <strong class="value">{{ currentProfile['placeOfOrigin'] }}</strong>
+        </div>
+        <div class="detail-item full-width">
+          <span class="label">Nơi Cư Trú</span>
+          <strong class="value">{{ currentProfile['placeOfResidence'] }}</strong>
+        </div>
+
+        <div class="detail-item">
+          <span class="label">Ngày Hết Hạn CCCD</span>
+          <strong class="value">{{ currentProfile['dateOfExpiry'] | date:'dd/MM/yyyy' }}</strong>
+        </div>
+      </div>
+
+      <div class="card-actions">
+        <button type="button" (click)="startEdit()" class="btn-fantasy btn-primary">
+<!--          <span class="material-icons">edit_note</span>-->
+          Chỉnh sửa hồ sơ
+        </button>
+      </div>
+    </section>
+    }
+
+    <!-- FORM EDIT -->
+    @if (isEditing()) {
+    <section class="glass-card edit-panel animate-slide-up">
+      <header class="panel-header">
+        <p class="eyebrow">Cập Nhật Bí Pháp</p>
+        <h3 class="panel-title">Tu Chỉnh Thông Tin</h3>
+      </header>
+
+      <!-- CCCD Processing Options -->
+      @if (!showCropper() && !showAlignedPreview()) {
+      <div class="cccd-options-grid">
+        <p class="option-hint">Tự động điền nhanh bằng pháp thuật quét CCCD:</p>
+
+        <button type="button" class="option-card" (click)="triggerPythonFileInput()">
+<!--          <div class="option-icon">-->
+<!--            <span class="material-icons">auto_fix_high</span>-->
+<!--          </div>-->
+          <div class="option-info">
+            <strong>Phát hiện & Căn chỉnh (YOLO)</strong>
+            <span>Tự động xoay, làm thẳng và nhận diện vùng chứa</span>
+          </div>
+          <input
+            #pythonFileInput
+            type="file"
+            accept="image/*"
+            class="hidden-input"
+            (change)="onPythonFileSelected($event)"
+          />
+        </button>
+
+<!--        <button type="button" class="option-card" (click)="triggerManualFileInput()">-->
+<!--          <div class="option-icon">-->
+<!--            <span class="material-icons">crop_free</span>-->
+<!--          </div>-->
+<!--          <div class="option-info">-->
+<!--            <strong>Cắt ảnh thủ công</strong>-->
+<!--            <span>Bạn tự định vị vùng chứa CCCD</span>-->
+<!--          </div>-->
+<!--          <input-->
+<!--            #manualFileInput-->
+<!--            type="file"-->
+<!--            accept="image/*"-->
+<!--            class="hidden-input"-->
+<!--            (change)="onFileSelected($event)"-->
+<!--          />-->
+<!--        </button>-->
+      </div>
+      }
+
+      <!-- Aligned Image Preview -->
+      @if (showAlignedPreview()) {
+      <div class="aligned-preview-box animate-zoom">
+        <p class="preview-label">Pháp trận đã căn chỉnh ảnh CCCD:</p>
+        <div class="image-frame">
+          <img
+            [src]="detectionService.createImageUrl(alignedImageBase64!)"
+            alt="CCCD đã căn thẳng"
+          />
+        </div>
+        <div class="preview-actions">
+          <button type="button" class="btn-fantasy btn-primary" (click)="confirmAlignedImage()" [disabled]="scanningIdCard()">
+            <span class="material-icons">{{ scanningIdCard() ? 'hourglass_top' : 'verified' }}</span>
+            {{ scanningIdCard() ? 'Đang giải mã...' : 'Xác nhận & OCR' }}
+          </button>
+          <button type="button" class="btn-fantasy btn-outline" (click)="cancelAlignedPreview()" [disabled]="scanningIdCard()">
+            <span class="material-icons">close</span>
+            Hủy
+          </button>
+        </div>
+      </div>
+      }
+
+      <!-- Manual Cropper -->
+      @if (showCropper()) {
+      <div class="cropper-box animate-zoom">
+        <app-cccd-login
+          (imageCropped)="onCccdCropped($event)"
+          (loginSubmit)="onCccdConfirm($event)">
+        </app-cccd-login>
+        <button type="button" class="btn-fantasy btn-outline full-width" (click)="cancelCrop()">Hủy cắt ảnh</button>
+      </div>
+      }
+
+      @if (!showCropper() && !showAlignedPreview()) {
+      <div class="form-wrapper">
+        <div class="form-grid">
+          <div class="fantasy-input">
+            <label for="firstName">Họ (First name)</label>
+            <input id="firstName" [(ngModel)]="form.firstName" placeholder="Nhập họ..." />
+          </div>
+          <div class="fantasy-input">
+            <label for="lastName">Tên (Last name)</label>
+            <input id="lastName" [(ngModel)]="form.lastName" placeholder="Nhập tên..." />
+          </div>
+          <div class="fantasy-input full-width">
+            <label for="p-email">Email liên lạc</label>
+            <input id="p-email" [(ngModel)]="form.email" placeholder="email@example.com" />
+          </div>
+          <div class="fantasy-input full-width">
+            <label for="p-dob">Ngày sinh hạ</label>
+            <input id="p-dob" type="date" [(ngModel)]="form.dob" />
+          </div>
+
+          <div class="form-divider" id="id-detail-header">Chi tiết Căn cước</div>
+
+          <div class="fantasy-input full-width">
+            <label for="idNumber">Số CCCD</label>
+            <input id="idNumber" [(ngModel)]="form.idNumber" placeholder="12 chữ số..." />
+          </div>
+          <div class="fantasy-input">
+            <label for="gender">Giới tính</label>
+            <input id="gender" [(ngModel)]="form.gender" placeholder="Nam/Nữ" />
+          </div>
+          <div class="fantasy-input">
+            <label for="nationality">Quốc tịch</label>
+            <input id="nationality" [(ngModel)]="form.nationality" placeholder="Việt Nam" />
+          </div>
+          <div class="fantasy-input full-width">
+            <label for="placeOfOrigin">Quê quán</label>
+            <input id="placeOfOrigin" [(ngModel)]="form.placeOfOrigin" placeholder="Địa chỉ thường trú..." />
+          </div>
+          <div class="fantasy-input full-width">
+            <label for="placeOfResidence">Nơi cư trú hiện tại</label>
+            <input id="placeOfResidence" [(ngModel)]="form.placeOfResidence" placeholder="Địa chỉ hiện tại..." />
+          </div>
+          <div class="fantasy-input full-width">
+            <label for="dateOfExpiry">Ngày hết hạn CCCD</label>
+            <input id="dateOfExpiry" type="date" [(ngModel)]="form.dateOfExpiry" />
+          </div>
+        </div>
+
+        <div class="actions">
+          <button type="button" class="btn-fantasy btn-primary" (click)="save()">
+            <span class="material-icons">save</span>
+            Lưu thay đổi
+          </button>
+          <button type="button" class="btn-fantasy btn-outline" (click)="cancel()">Đóng</button>
+        </div>
+      </div>
+      }
+    </section>
+    }
+    }
+  </section>
+</div>

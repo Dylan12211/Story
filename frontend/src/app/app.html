@@ -2,24 +2,23 @@
   <section class="hero-panel">
     <div class="hero-panel__grain"></div>
     <div class="hero-panel__content">
-      <p class="eyebrow">Story workflow studio</p>
-      <h1>Viết, gửi duyệt và xuất bản story trong một giao diện Angular.</h1>
+      <p class="eyebrow">{{ 'app.title' | translate }}</p>
+      <h1>{{ 'app.subtitle' | translate }}</h1>
       <p class="hero-copy">
-        Frontend này bám sát backend Spring Boot hiện có: đăng nhập Keycloak, khởi tạo quy trình,
-        theo dõi task và duyệt bài theo đúng trạng thái workflow.
+        {{ 'app.description' | translate }}
       </p>
 
       <div class="hero-metrics">
         <article>
-          <span>Total</span>
+          <span>{{ 'metrics.total' | translate }}</span>
           <strong>{{ storyMetrics().total }}</strong>
         </article>
         <article>
-          <span>Published</span>
+          <span>{{ 'metrics.published' | translate }}</span>
           <strong>{{ storyMetrics().published }}</strong>
         </article>
         <article>
-          <span>Pending</span>
+          <span>{{ 'metrics.pending' | translate }}</span>
           <strong>{{ storyMetrics().pending }}</strong>
         </article>
       </div>
@@ -27,15 +26,15 @@
       <div class="hero-storyline">
         <div>
           <span>1</span>
-          <p>Create story with title and long-form content.</p>
+          <p>{{ 'storyline.step1' | translate }}</p>
         </div>
         <div>
           <span>2</span>
-          <p>Push it into Camunda workflow for review.</p>
+          <p>{{ 'storyline.step2' | translate }}</p>
         </div>
         <div>
           <span>3</span>
-          <p>Approve to publish or reject for revision.</p>
+          <p>{{ 'storyline.step3' | translate }}</p>
         </div>
       </div>
     </div>
@@ -44,8 +43,8 @@
   <section class="workspace">
     <header class="workspace__header">
       <div>
-        <p class="workspace__label">Angular client for `Story`</p>
-        <h2>Editorial control room</h2>
+        <p class="workspace__label">{{ 'workspace.label' | translate }}</p>
+        <h2>{{ 'workspace.title' | translate }}</h2>
       </div>
 
       <div class="workspace__session" *ngIf="session(); else loggedOutState">
@@ -53,12 +52,13 @@
           <span>{{ session()?.username }}</span>
           <small>{{ roleLabel() }}</small>
         </div>
-        <button type="button" class="ghost-button" (click)="logout()">Log out</button>
+        <button type="button" class="ghost-button" (click)="logout()">{{ 'nav.logout' | translate }}</button>
+        <app-language-switcher />
       </div>
 
       <ng-template #loggedOutState>
         <div class="workspace__session workspace__session--muted">
-          <span>Connect to backend</span>
+          <span>{{ 'common.loading' | translate }}</span>
           <small>Use a Keycloak account to load stories and tasks.</small>
         </div>
       </ng-template>
@@ -70,7 +70,7 @@
     <section class="login-section" *ngIf="!session()">
       <div class="login-section__intro">
         <p class="eyebrow">Authentication</p>
-        <h3>Đăng nhập để đồng bộ người dùng, story và workflow task.</h3>
+        <h3>{{ 'auth.login.title' | translate }}</h3>
         <p>
           Backend của bạn trả về access token từ Keycloak, và UI này sẽ dùng token đó cho mọi API
           `/api/stories` và `/api/workflow`.
@@ -79,11 +79,11 @@
 
       <form class="login-form" (ngSubmit)="login()">
         <label>
-          Username
+          {{ 'common.name' | translate }}
           <input [ngModel]="username()" (ngModelChange)="username.set($event)" name="username" />
         </label>
         <label>
-          Password
+          {{ 'common.password' | translate }}
           <input
             type="password"
             [ngModel]="password()"
@@ -92,7 +92,7 @@
           />
         </label>
         <button type="submit" [disabled]="loginBusy()">
-          {{ loginBusy() ? 'Signing in...' : 'Sign in and load workspace' }}
+          {{ loginBusy() ? ('common.loading' | translate) : ('nav.login' | translate) }}
         </button>
       </form>
     </section>
@@ -101,39 +101,39 @@
       <article class="panel compose-panel">
         <div class="panel__heading">
           <p class="eyebrow">Create story</p>
-          <h3>Khởi tạo một story mới</h3>
+          <h3>{{ 'common.create' | translate }}</h3>
         </div>
 
         <label>
-          Title
+          {{ 'common.name' | translate }}
           <input
             [ngModel]="storyTitle()"
             (ngModelChange)="storyTitle.set($event)"
             name="storyTitle"
-            placeholder="Nhập tiêu đề bài viết"
+            [placeholder]="'common.name' | translate"
           />
         </label>
 
         <label>
-          Content
+          {{ 'common.description' | translate }}
           <textarea
             [ngModel]="storyContent()"
             (ngModelChange)="storyContent.set($event)"
             name="storyContent"
             rows="7"
-            placeholder="Viết nội dung story ở đây"
+            [placeholder]="'common.description' | translate"
           ></textarea>
         </label>
 
         <button type="button" (click)="submitStory()" [disabled]="actionBusy()">
-          {{ actionBusy() ? 'Submitting...' : 'Start workflow' }}
+          {{ actionBusy() ? ('common.loading' | translate) : ('nav.workflow' | translate) }}
         </button>
       </article>
 
       <article class="panel stories-panel">
         <div class="panel__heading">
           <p class="eyebrow">Library</p>
-          <h3>Danh sách story đã lưu</h3>
+          <h3>{{ 'common.name' | translate }}</h3>
         </div>
 
         <div class="story-list" *ngIf="stories().length; else noStories">
@@ -147,7 +147,7 @@
         </div>
 
         <ng-template #noStories>
-          <p class="empty-state">Chưa có story nào trong database.</p>
+          <p class="empty-state">{{ 'error.not_found' | translate }}</p>
         </ng-template>
       </article>
 
@@ -174,7 +174,7 @@
         </div>
 
         <ng-template #noTasks>
-          <p class="empty-state">Hiện chưa có task nào chờ xử lý.</p>
+          <p class="empty-state">{{ 'error.not_found' | translate }}</p>
         </ng-template>
       </article>
 
@@ -187,14 +187,14 @@
 
         <div class="detail-empty" *ngIf="!selectedTask()">
           <p>
-            {{ loadingWorkspace() ? 'Đang tải dữ liệu...' : 'Chọn một task từ hàng đợi để thao tác.' }}
+            {{ loadingWorkspace() ? ('common.loading' | translate) : ('common.actions' | translate) }}
           </p>
         </div>
 
         <div class="detail-form" *ngIf="selectedTask()">
           <ng-container *ngIf="!canReviewTask(); else reviewTemplate">
             <label>
-              Title
+              {{ 'common.name' | translate }}
               <input
                 [ngModel]="taskTitle()"
                 (ngModelChange)="taskTitle.set($event)"
@@ -203,7 +203,7 @@
             </label>
 
             <label>
-              Content
+              {{ 'common.description' | translate }}
               <textarea
                 [ngModel]="taskContent()"
                 (ngModelChange)="taskContent.set($event)"
@@ -220,14 +220,14 @@
                 [class.review-choice--active]="reviewApproved()"
                 (click)="reviewApproved.set(true)"
               >
-                Approve and publish
+                {{ 'common.approve' | translate }}
               </button>
               <button
                 type="button"
                 [class.review-choice--active]="!reviewApproved()"
                 (click)="reviewApproved.set(false)"
               >
-                Reject for revision
+                {{ 'common.reject' | translate }}
               </button>
             </div>
 
@@ -238,7 +238,7 @@
           </ng-template>
 
           <button type="button" (click)="completeTask()" [disabled]="actionBusy()">
-            {{ actionBusy() ? 'Processing...' : 'Complete selected task' }}
+            {{ actionBusy() ? ('common.loading' | translate) : ('common.confirm' | translate) }}
           </button>
         </div>
       </article>
