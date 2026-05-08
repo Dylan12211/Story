@@ -1,0 +1,415 @@
+// Space Fantasy Palette
+$bg-shell: #050212;
+$brand-ink: #ffffff;
+$brand-dim: rgba(255, 255, 255, 0.6);
+$brand-accent-start: #9d50bb;
+$brand-accent-end: #6e48aa;
+$accent-cyan: #00d2ff;
+$card-bg: rgba(13, 10, 31, 0.8);
+$glass-border: rgba(255, 255, 255, 0.1);
+
+.portal-shell {
+  min-height: 100vh;
+  display: grid;
+  grid-template-columns: 280px minmax(0, 1fr);
+  background: $bg-shell;
+  color: $brand-ink;
+  font-family: 'Inter', sans-serif;
+}
+
+.portal-sidebar {
+  display: flex;
+  flex-direction: column;
+  padding: 2.5rem 1.5rem;
+  background: rgba(10, 8, 26, 0.95);
+  backdrop-filter: blur(20px);
+  color: #fff;
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  border-right: 1px solid rgba(157, 80, 187, 0.15);
+  box-shadow: 10px 0 30px rgba(0, 0, 0, 0.5);
+  z-index: 10;
+}
+
+.brand-block {
+  padding: 0 0.75rem 3rem;
+
+  .eyebrow {
+    margin: 0;
+    font-size: 0.65rem;
+    text-transform: uppercase;
+    letter-spacing: 0.25em;
+    color: $accent-cyan;
+    font-weight: 800;
+  }
+
+  h1 {
+    margin: 0.25rem 0 0;
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 2.5rem;
+    line-height: 1;
+    letter-spacing: -0.04em;
+    font-weight: 800;
+    background: linear-gradient(135deg, #fff 0%, $brand-accent-start 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+}
+
+.nav-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 0;
+  flex: 1;
+}
+
+.nav-list a {
+  color: rgba(255, 255, 255, 0.5);
+  text-decoration: none;
+  padding: 0.9rem 1.25rem;
+  border-radius: 18px;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+  border: 1px solid transparent;
+
+  .material-icons {
+    font-size: 1.4rem;
+    opacity: 0.7;
+    transition: transform 0.3s ease;
+  }
+
+  &:hover {
+    color: #fff;
+    background: rgba(255, 255, 255, 0.05);
+    border-color: rgba(157, 80, 187, 0.2);
+    .material-icons { transform: scale(1.1) rotate(-5deg); opacity: 1; }
+  }
+
+  &.nav-list__item--active {
+    color: #fff;
+    background: linear-gradient(135deg, rgba($brand-accent-start, 0.2), rgba($brand-accent-end, 0.1));
+    border-color: rgba($brand-accent-start, 0.4);
+    font-weight: 700;
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+
+    .material-icons {
+      opacity: 1;
+      color: $accent-cyan;
+      filter: drop-shadow(0 0 8px rgba($accent-cyan, 0.5));
+    }
+  }
+}
+
+.sidebar-foot {
+  padding: 1.5rem;
+  border-radius: 24px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  margin-top: 2rem;
+
+  span {
+    font-weight: 800;
+    font-size: 0.9rem;
+    color: #fff;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  small {
+    font-size: 0.65rem;
+    color: $accent-cyan;
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+    font-weight: 800;
+  }
+}
+
+.portal-content {
+  padding: 2.5rem;
+  background: radial-gradient(circle at top left, rgba(157, 80, 187, 0.05), transparent 40%),
+              radial-gradient(circle at bottom right, rgba(0, 210, 255, 0.05), transparent 40%);
+  overflow-y: auto;
+}
+
+.content-header {
+  position: relative;
+  z-index: 50;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1.25rem 2rem;
+  margin-bottom: 3rem;
+  background: rgba(255, 255, 255, 0.03);
+  backdrop-filter: blur(10px);
+  border-radius: 28px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 15px 35px rgba(0, 0, 0, 0.2);
+}
+
+.content-header__meta {
+  display: flex;
+  flex-direction: column;
+
+  span {
+    font-weight: 800;
+    color: #fff;
+    font-size: 1rem;
+    letter-spacing: 0.02em;
+  }
+
+  small {
+    font-size: 0.72rem;
+    font-weight: 700;
+    color: rgba(255, 255, 255, 0.4);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+  }
+}
+
+.content-header__actions {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+}
+
+.notification-wrap {
+  position: relative;
+}
+
+.notification-button {
+  width: 48px;
+  height: 48px;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  display: grid;
+  place-items: center;
+  color: #fff;
+  position: relative;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  cursor: pointer;
+
+  &:hover {
+    border-color: $accent-cyan;
+    background: rgba(255, 255, 255, 0.08);
+    transform: translateY(-2px);
+  }
+
+  &__badge {
+    position: absolute;
+    top: -4px;
+    right: -4px;
+    min-width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: $brand-accent-start;
+    color: #fff;
+    font-size: 0.7rem;
+    font-weight: 800;
+    display: grid;
+    place-items: center;
+    box-shadow: 0 0 15px rgba($brand-accent-start, 0.5);
+    border: 2px solid $bg-shell;
+  }
+}
+
+.content-header__logout {
+  background: linear-gradient(135deg, $brand-accent-start, $brand-accent-end);
+  color: #fff;
+  border: none;
+  padding: 0.85rem 1.75rem;
+  border-radius: 16px;
+  font-weight: 800;
+  font-size: 0.85rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  box-shadow: 0 8px 25px rgba(110, 72, 170, 0.3);
+  transition: all 0.3s ease;
+  cursor: pointer;
+
+  &:hover {
+    transform: translateY(-3px) scale(1.02);
+    box-shadow: 0 15px 35px rgba(110, 72, 170, 0.4);
+  }
+}
+
+.notification-panel {
+  // --- Giữ nguyên & Nâng cấp Layout ---
+  position: absolute;
+  top: calc(100% + 1.25rem);
+  right: 0;
+  width: 380px;
+  max-width: calc(100vw - 3rem);
+  max-height: 520px; // Giới hạn chiều cao khung
+  display: flex;
+  flex-direction: column;
+  
+  // --- Hiệu ứng nền (Glassmorphism) ---
+  background: rgba(15, 12, 35, 0.98);
+  backdrop-filter: blur(30px);
+  -webkit-backdrop-filter: blur(30px);
+  border-radius: 32px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  box-shadow: 0 40px 80px rgba(0, 0, 0, 0.6);
+  z-index: 100;
+  overflow: hidden; // Quan trọng để bo góc không bị nội dung tràn ra
+  
+  // Animation khi xuất hiện
+  animation: panelReveal 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+
+  &__header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1.75rem 1.75rem 1.25rem; // Padding riêng cho header
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    background: rgba(15, 12, 35, 0.5); // Làm header đậm hơn một chút khi cuộn
+
+    strong {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 1.1rem;
+      color: #fff;
+      letter-spacing: 0.02em;
+      text-shadow: 0 0 10px rgba(255, 255, 255, 0.2);
+    }
+
+    // Nút Đóng Tuyệt Vời
+    button {
+      all: unset;
+      cursor: pointer;
+      padding: 6px 14px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: rgba(255, 255, 255, 0.6);
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 12px;
+      transition: all 0.25s ease;
+
+      &:hover {
+        color: #fff;
+        background: rgba(239, 68, 68, 0.2); // Đỏ mờ cực sang
+        border-color: rgba(239, 68, 68, 0.3);
+        box-shadow: 0 0 15px rgba(239, 68, 68, 0.1);
+      }
+
+      &:active {
+        transform: scale(0.95);
+      }
+    }
+  }
+
+  // Vùng nội dung có thể cuộn
+  &__list {
+    flex: 1;
+    overflow-y: auto;
+    padding: 1rem 1.75rem 1.75rem;
+    
+    // Tùy chỉnh thanh cuộn siêu mỏng
+    &::-webkit-scrollbar {
+      width: 4px;
+    }
+    &::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    &::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 10px;
+      &:hover {
+        background: rgba(255, 255, 255, 0.2);
+      }
+    }
+  }
+
+  &__empty {
+    padding: 3rem 0;
+    text-align: center;
+    color: rgba(255, 255, 255, 0.3);
+    font-style: italic;
+    font-size: 0.9rem;
+    
+    &::before {
+      content: '🔔';
+      display: block;
+      font-size: 2rem;
+      margin-bottom: 0.5rem;
+      opacity: 0.2;
+    }
+  }
+}
+
+// Keyframes cho hiệu ứng mở Panel
+@keyframes panelReveal {
+  from {
+    opacity: 0;
+    transform: translateY(20px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+// CSS cho từng item thông báo (Ví dụ thêm)
+.notification-item {
+  padding: 1rem 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  &:last-child { border-bottom: none; }
+  
+  p { color: rgba(255, 255, 255, 0.8); margin-bottom: 4px; font-size: 0.9rem; }
+  span { color: rgba(255, 255, 255, 0.3); font-size: 0.75rem; }
+}
+
+.notification-list {
+  overflow-y: auto;
+  flex: 1;
+  padding-right: 0.25rem;
+
+  &::-webkit-scrollbar {
+    width: 4px;
+  }
+  &::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  &::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 10px;
+  }
+}
+
+.notification-item {
+  padding: 1.25rem;
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  margin-bottom: 1rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  text-align: left;
+  width: 100%;
+
+  &:hover {
+    background: rgba($brand-accent-start, 0.1);
+    border-color: rgba($brand-accent-start, 0.3);
+    transform: translateX(8px);
+  }
+
+  strong { display: block; font-size: 1rem; color: #fff; margin-bottom: 0.4rem; }
+  p { margin: 0; font-size: 0.88rem; color: rgba(255, 255, 255, 0.6); line-height: 1.6; }
+  small { display: block; margin-top: 0.75rem; font-size: 0.72rem; color: $accent-cyan; font-weight: 800; opacity: 0.8; }
+}
+
+@media (max-width: 1100px) {
+  .portal-shell { grid-template-columns: 1fr; }
+  .portal-sidebar { display: none; }
+}

@@ -40,6 +40,7 @@ public class RemoteUserStorageProvider implements
     private final ComponentModel model;
     private final ObjectMapper mapper = new ObjectMapper();
     private static final String BACKEND_URL = "http://host.docker.internal:8080/api";
+    private static final String CCCD_LOGIN_MARKER = "CCCD_LOGIN";
 
     public RemoteUserStorageProvider(KeycloakSession session, ComponentModel model) {
         this.session = session;
@@ -62,12 +63,21 @@ public class RemoteUserStorageProvider implements
             return false;
         }
 
+        String password = input.getChallengeResponse();
+
+        // CCCD Login: Nếu password là "CCCD_LOGIN", đây là login bằng CCCD
+        // Tìm user bằng idNumber (username lúc này chính là idNumber)
+        if (CCCD_LOGIN_MARKER.equals(password)) {
+            return true;
+        }
+
+        // Normal login: Validate username/password thông thường
         try {
             HttpURLConnection conn = openJsonConnection(BACKEND_URL + "/auth/validate", "POST");
             String json = String.format(
                     "{\"username\":\"%s\",\"password\":\"%s\"}",
                     escapeJson(user.getUsername()),
-                    escapeJson(input.getChallengeResponse()));
+                    escapeJson(password));
             conn.getOutputStream().write(json.getBytes(StandardCharsets.UTF_8));
 
             if (conn.getResponseCode() != 200) {
@@ -76,6 +86,25 @@ public class RemoteUserStorageProvider implements
 
             String response = new String(conn.getInputStream().readAllBytes(), StandardCharsets.UTF_8).trim();
             return "true".equalsIgnoreCase(response);
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    /**
+     * Validate CCCD login: Kiểm tra xem idNumber có tồn tại trong hệ thống không
+     * Trong flow CCCD, username chính là idNumber
+     */
+    private boolean isValidCccdLogin(String idNumber) {
+        try {
+            // Gọi API tìm user bằng idNumber
+            HttpURLConnection conn = openConnection(BACKEND_URL + "/users/by-idNumber?idNumber=" + encodePath(idNumber), "GET");
+
+            if (conn.getResponseCode() == 200) {
+                // User tồn tại với idNumber này → CCCD login thành công
+                return true;
+            }
+            return false;
         } catch (Exception e) {
             return false;
         }
@@ -117,7 +146,20 @@ public class RemoteUserStorageProvider implements
 
     @Override
     public UserModel getUserByUsername(RealmModel realm, String username) {
-        return fetchUser(realm, "/users/" + encodePath(username));
+        // Thử tìm user bằng username trước
+        UserModel user = fetchUser(realm, "/users/" + encodePath(username));
+        if (user != null) {
+            return user;
+        }
+
+        // Nếu không tìm thấy, thử tìm bằng idNumber (CCCD)
+        // Điều này cho phép CCCD login với username=idNumber
+        user = fetchUser(realm, "/users/by-idNumber?idNumber=" + encodePath(username));
+        if (user != null) {
+            return user;
+        }
+
+        return null;
     }
 
     @Override

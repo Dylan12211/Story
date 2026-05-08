@@ -21,6 +21,12 @@ export const routes: Routes = [
         .then(m => m.GoogleCallbackComponent)
   },
   {
+    path: 'reset-password',
+    loadComponent: () =>
+      import('./pages/reset-password-page/reset-password-page.component')
+        .then(m => m.ResetPasswordPageComponent)
+  },
+  {
     path: 'portal',
     component: PortalShellComponent,
     canActivate: [authGuard],

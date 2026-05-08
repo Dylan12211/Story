@@ -1,3 +1,4 @@
+
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 
 import { Injectable, computed, inject, signal } from '@angular/core';
@@ -5,6 +6,7 @@ import { Injectable, computed, inject, signal } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
 
 import { environment } from '../../environments/environment';
+import { SecureStorageService } from './secure-storage.service';
 
 
 
@@ -17,18 +19,40 @@ import { ApiEnvelope, ProfileResponse, RegisterPayload, SessionState } from './m
 export class AuthService {
 
   private readonly http = inject(HttpClient);
+  private readonly secureStorage = inject(SecureStorageService);
 
   private readonly apiBase = environment.apiBaseUrl;
 
-  private readonly storageKey = 'story.portal.session';
+  // Không dùng localStorage key nữa - đã chuyển sang SecureStorage
 
 
 
   readonly session = signal<SessionState | null>(this.loadSession());
 
-  readonly isAuthenticated = computed(() => !!this.session());
+  readonly isAuthenticated = computed(() => {
+    const sess = this.session();
+    if (!sess) return false;
+    // Kiểm tra token chưa hết hạn
+    return !this.isTokenExpired(sess.accessToken);
+  });
 
   readonly isAdmin = computed(() => this.session()?.roles.includes('ROLE_ADMIN') ?? false);
+
+  /**
+   * Kiểm tra token đã hết hạn chưa
+   */
+  private isTokenExpired(token: string): boolean {
+    try {
+      const payload = token.split('.')[1];
+      const normalized = payload.replace(/-/g, '+').replace(/_/g, '/');
+      const decoded = atob(normalized);
+      const claims = JSON.parse(decoded);
+      const exp = claims.exp * 1000; // Convert to milliseconds
+      return Date.now() >= exp;
+    } catch {
+      return true; // Nếu lỗi decode, coi như expired
+    }
+  }
 
 
 
@@ -42,11 +66,11 @@ export class AuthService {
 
       );
 
-      
+
 
       console.log('Login response:', response);
 
-      
+
 
       const payload = JSON.parse(response) as Record<string, string>;
 
@@ -64,7 +88,7 @@ export class AuthService {
 
 
 
-    const claims = this.decodeJwt(accessToken);
+      const claims = this.decodeJwt(accessToken);
 
       const realmAccess = claims['realm_access'] as { roles?: string[] } | undefined;
 
@@ -96,7 +120,7 @@ export class AuthService {
 
 
 
-      localStorage.setItem(this.storageKey, JSON.stringify(session));
+      this.secureStorage.setSession(JSON.stringify(session));
 
       this.session.set(session);
 
@@ -184,7 +208,7 @@ export class AuthService {
 
 
 
-    localStorage.removeItem(this.storageKey);
+    this.secureStorage.clearSession();
 
     this.session.set(null);
 
@@ -217,29 +241,24 @@ export class AuthService {
 
 
   private loadSession(): SessionState | null {
-
-    const raw = localStorage.getItem(this.storageKey);
+    const raw = this.secureStorage.getSession();
 
     if (!raw) {
-
       return null;
-
     }
-
-
 
     try {
-
-      return JSON.parse(raw) as SessionState;
-
+      const session = JSON.parse(raw) as SessionState;
+      // Kiểm tra token còn hiệu lực không
+      if (this.isTokenExpired(session.accessToken)) {
+        this.secureStorage.clearSession();
+        return null;
+      }
+      return session;
     } catch {
-
-      localStorage.removeItem(this.storageKey);
-
+      this.secureStorage.clearSession();
       return null;
-
     }
-
   }
 
 
@@ -302,7 +321,7 @@ export class AuthService {
 
 
 
-    localStorage.setItem(this.storageKey, JSON.stringify(session));
+    this.secureStorage.setSession(JSON.stringify(session));
 
     this.session.set(session);
 
@@ -336,7 +355,7 @@ export class AuthService {
       provider: payload['id_token'] ? 'GOOGLE' : 'LOCAL'
     };
 
-    localStorage.setItem(this.storageKey, JSON.stringify(session));
+    this.secureStorage.setSession(JSON.stringify(session));
     this.session.set(session);
     return session;
   }

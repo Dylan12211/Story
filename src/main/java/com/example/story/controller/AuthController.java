@@ -136,10 +136,11 @@ public class AuthController {
             IdCardLoginService.IdCardLoginResult result = idCardLoginService.loginWithIdCard(image);
             UserResponse user = result.getUser();
 
-            // Step 2: Login with Keycloak to get token
+            // Step 2: Login with Keycloak using CCCD flow
+            // Trong flow CCCD: username = idNumber, password = CCCD_LOGIN
             LoginRequest loginRequest = new LoginRequest();
-            loginRequest.setUsername(user.getUsername());
-            loginRequest.setPassword(user.getIdNumber());
+            loginRequest.setUsername(result.getExtractedIdNumber()); // username là idNumber
+            loginRequest.setPassword("CCCD_LOGIN"); // marker để Keycloak detect CCCD login
             String tokenResponse = loginService.login(loginRequest);
 
             // Step 3: Build success response
@@ -154,5 +155,28 @@ public class AuthController {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(CccdLoginResponse.error("Lỗi hệ thống khi xử lý đăng nhập CCCD"));
         }
+    }
+
+    /**
+     * Endpoint để Keycloak Provider tìm user bằng idNumber (CCCD)
+     * Trả về 200 nếu user tồn tại với idNumber này
+     */
+    @GetMapping("/users/by-idNumber")
+    public ResponseEntity<UserResponse> getUserByIdNumber(@RequestParam("idNumber") String idNumber) {
+        return userService.findByIdNumber(idNumber)
+                .map(userService::toUserResponse)
+                .map(ResponseEntity::ok)
+                .orElse(ResponseEntity.notFound().build());
+    }
+
+    /**
+     * Endpoint để Keycloak Provider tìm user bằng userId
+     */
+    @GetMapping("/users/id/{userId}")
+    public ResponseEntity<UserResponse> getUserById(@PathVariable("userId") String userId) {
+        return userService.findByUserId(userId)
+                .map(userService::toUserResponse)
+                .map(ResponseEntity::ok)
+                .orElse(ResponseEntity.notFound().build());
     }
 }

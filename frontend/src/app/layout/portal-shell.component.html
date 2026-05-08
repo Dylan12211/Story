@@ -1,0 +1,98 @@
+<div class="portal-shell">
+  <aside class="portal-sidebar">
+    <div class="brand-block">
+      <p class="eyebrow">Story portal</p>
+      <h1>StoryOps</h1>
+    </div>
+
+    <nav class="nav-list">
+      <a routerLink="/portal/dashboard" routerLinkActive="nav-list__item--active">
+<!--        <span class="material-icons">dashboard</span>-->
+        {{ 'nav.dashboard' | translate }}
+      </a>
+      <a routerLink="/portal/profile" routerLinkActive="nav-list__item--active">
+<!--        <span class="material-icons">account_circle</span>-->
+        {{ 'nav.profile' | translate }}
+      </a>
+      <a routerLink="/portal/workflow" routerLinkActive="nav-list__item--active">
+<!--        <span class="material-icons">account_tree</span>-->
+        {{ 'nav.workflow' | translate }}
+      </a>
+      <a routerLink="/portal/reports" routerLinkActive="nav-list__item--active">
+<!--        <span class="material-icons">assessment</span>-->
+        {{ 'nav.reports' | translate }}
+      </a>
+      <a routerLink="/portal/architecture" routerLinkActive="nav-list__item--active">
+<!--        <span class="material-icons">architecture</span>-->
+        {{ 'nav.architecture' | translate }}
+      </a>
+      @if (isAdmin()) {
+      <a routerLink="/portal/admin" routerLinkActive="nav-list__item--active">
+<!--        <span class="material-icons">admin_panel_settings</span>-->
+        {{ 'nav.admin' | translate }}
+      </a>
+      }
+    </nav>
+
+    <div class="sidebar-foot">
+      <span>{{ auth.session()?.username }}</span>
+      <small>{{ roleLabel() }}</small>
+    </div>
+  </aside>
+
+  <main class="portal-content">
+    <header class="content-header">
+      <div class="content-header__meta">
+        <span>{{ auth.session()?.email || auth.session()?.username }}</span>
+        <small>Role hiện tại: {{ roleLabel() }}</small>
+      </div>
+
+      <div class="content-header__actions">
+        <div class="notification-wrap">
+          <button type="button" class="notification-button" (click)="toggleNotifications()">
+            <span class="notification-button__icon">🔔</span>
+            @if (unreadCount()) {
+            <span class="notification-button__badge">{{ unreadCount() }}</span>
+            }
+          </button>
+
+          @if (showNotifications()) {
+          <div class="notification-panel">
+            <div class="notification-panel__header">
+              <strong>{{ 'notification.info' | translate }}</strong>
+              <button type="button" (click)="showNotifications.set(false)" >Đóng</button>
+            </div>
+
+            @if (!notificationsWs.notifications().length) {
+            <div class="notification-panel__empty">
+              {{ 'error.not_found' | translate }}
+            </div>
+            }
+
+            @if (notificationsWs.notifications().length) {
+            <div class="notification-list">
+              @for (item of notificationsWs.notifications(); track item.id) {
+              <button type="button" class="notification-item" (click)="handleNotificationClick(item)">
+                <strong>{{ item.title }}</strong>
+                <p>{{ item.message }}</p>
+                <small>{{ item.createdAt | date: 'dd/MM/yyyy HH:mm:ss' }}</small>
+              </button>
+              }
+            </div>
+            }
+          </div>
+          }
+        </div>
+
+        <app-language-switcher />
+        <button type="button" class="content-header__logout" (click)="logout()">
+          {{ 'nav.logout' | translate }}
+        </button>
+      </div>
+    </header>
+
+    <div class="content-viewport">
+      <router-outlet></router-outlet>
+    </div>
+  </main>
+</div>

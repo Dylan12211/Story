@@ -1,0 +1,199 @@
+@if (canAccess()) {
+<div class="admin-portal-wrapper">
+  <!-- Header Page -->
+  <header class="admin-header">
+    <div class="header-content">
+      <h2 class="title-glow">Quản Trị Hệ Thống</h2>
+      <p class="subtitle">Kiểm soát vận mệnh của thế giới ngôn từ</p>
+    </div>
+    <div class="status-indicators">
+      @if (error()) {
+      <div class="message error-toast">
+        <span class="material-icons">error_outline</span>
+        <span>{{ error() }}</span>
+      </div>
+      }
+      @if (success()) {
+      <div class="message success-toast">
+        <span class="material-icons">check_circle_outline</span>
+        <span>{{ success() }}</span>
+      </div>
+      }
+    </div>
+  </header>
+
+  <section class="admin-grid">
+    <!-- HERO STATS -->
+    <section class="glass-card hero-section">
+      <div class="card-header">
+        <span class="eyebrow">Thống kê tổng quan</span>
+        <h3>Trạng thái Vương quốc</h3>
+      </div>
+
+      <div class="hero-stats-grid">
+        <article class="stat-box">
+          <div class="stat-icon purple-glow">
+            <span class="material-icons">shield</span>
+          </div>
+          <div class="stat-info">
+            <span>Quyền hạn</span>
+            <strong class="text-gradient">ADMINISTRATOR</strong>
+          </div>
+          <p class="stat-desc">Toàn quyền điều phối người dùng và hệ thống.</p>
+        </article>
+
+        <article class="stat-box">
+          <div class="stat-icon blue-glow">
+            <span class="material-icons">group</span>
+          </div>
+          <div class="stat-info">
+            <span>Cư dân</span>
+            <strong class="text-gradient">{{ totalUsers() }}</strong>
+          </div>
+          <p class="stat-desc">Lượng người dùng hiện hữu trong thế giới.</p>
+        </article>
+      </div>
+    </section>
+
+    <!-- ROLE MANAGER -->
+    <section class="glass-card form-section">
+      <div class="card-header">
+        <span class="eyebrow">Phân phong chức tước</span>
+        <h3>Cấp bậc Role</h3>
+      </div>
+
+      <form class="fantasy-form" (ngSubmit)="assignRole()">
+        <div class="input-group">
+          <label for="roleUsername">Tên định danh (Username)</label>
+          <div class="input-wrapper">
+            <input
+              id="roleUsername"
+              name="roleUsername"
+              [ngModel]="roleEditor().username"
+              (ngModelChange)="updateRoleField('username', $event)"
+              placeholder="Nhập username..."
+              autocomplete="off"
+            />
+<!--            <span class="material-icons input-icon">person</span>-->
+          </div>
+        </div>
+
+        <div class="input-group">
+          <label for="roleName">Chức tước (Role)</label>
+          <div class="select-wrapper">
+            <select
+              id="roleName"
+              name="roleName"
+              [ngModel]="roleEditor().role"
+              (ngModelChange)="updateRoleField('role', $event)"
+            >
+              <option value="USER">USER - Người đọc</option>
+              <option value="ADMIN">ADMIN - Quản trị</option>
+            </select>
+<!--            <span class="material-icons select-arrow">expand_more</span>-->
+          </div>
+        </div>
+
+        <div class="form-actions">
+          <button type="submit" class="btn-primary" [disabled]="busy()">
+            @if (!busy()) {
+            <span>Ban lệnh cấp Role</span>
+            } @else {
+            <span class="loader-text">Đang thực thi...</span>
+            }
+            @if (!busy()) {
+            <span class="material-icons">bolt</span>
+            }
+          </button>
+          <button type="button" class="btn-ghost" (click)="resetRoleEditor()">
+            Làm mới bản sớ
+          </button>
+        </div>
+      </form>
+    </section>
+
+    <!-- USER LIST -->
+    <section class="glass-card table-section">
+      <div class="card-header flex-header">
+        <div>
+          <span class="eyebrow">Danh sách thần dân</span>
+          <h3>Nhân khẩu vương quốc</h3>
+        </div>
+        <div class="counter-badge">{{ totalUsers() }} Users</div>
+      </div>
+
+      <div class="custom-table-container">
+        @if (pagedUsers().length) {
+        <div class="table-scroll">
+          @for (user of pagedUsers(); track user.username) {
+          <div class="user-row animate-in">
+            <div class="user-main">
+              <div class="user-avatar">{{ user.username.charAt(0).toUpperCase() }}</div>
+              <div class="user-info">
+                <span class="username">{{ user.username }}</span>
+                <span class="email">{{ user.email || 'Ẩn danh' }}</span>
+              </div>
+            </div>
+
+            <div class="user-meta">
+                    <span class="status-badge" [attr.data-status]="user.status || 'active'">
+                      {{ user.status || 'active' }}
+                    </span>
+              <button type="button" class="btn-danger-icon" (click)="deleteUser(user.username)">
+                <span class="material-icons">Delete</span>
+              </button>
+            </div>
+          </div>
+          }
+        </div>
+        } @else {
+        <ng-container *ngTemplateOutlet="emptyUsers"></ng-container>
+        }
+      </div>
+
+      <!-- PAGINATION -->
+      @if (totalUsers() > pageSize) {
+      <div class="fantasy-pagination">
+        <button type="button" class="btn-nav" (click)="prevPage()" [disabled]="currentPage() === 1">
+          <span class="material-icons">Left</span>
+        </button>
+        <div class="page-info">
+          <span class="current">{{ currentPage() }}</span>
+          <span class="divider">/</span>
+          <span class="total">{{ totalPages() }}</span>
+        </div>
+        <button
+          type="button"
+          class="btn-nav"
+          (click)="nextPage()"
+          [disabled]="currentPage() === totalPages()"
+        >
+          <span class="material-icons">Right</span>
+        </button>
+      </div>
+      }
+    </section>
+  </section>
+</div>
+} @else {
+<ng-container *ngTemplateOutlet="noAccess"></ng-container>
+}
+
+<ng-template #emptyUsers>
+  <div class="empty-state-fantasy">
+    <span class="material-icons huge-icon">search_off</span>
+    <p>Chưa có cư dân nào được tìm thấy trong vương quốc này.</p>
+  </div>
+</ng-template>
+
+<ng-template #noAccess>
+  <section class="forbidden-overlay">
+    <div class="forbidden-card">
+      <span class="material-icons lock-icon">lock_person</span>
+      <span class="eyebrow">Cấm địa</span>
+      <h3>Quyền hạn không đủ</h3>
+      <p>Cuốn sớ quản trị này chỉ dành cho những bậc Admin cao nhất.</p>
+      <button class="btn-primary" (click)="auth.logout()">Rời khỏi cấm địa</button>
+    </div>
+  </section>
+</ng-template>

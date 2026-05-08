@@ -33,6 +33,10 @@ public class LoginService {
     private String tokenUrl;
 
     public String login(LoginRequest loginRequest) {
+        // Debug: Log giá trị config
+        log.info("Keycloak Config - clientId: {}, tokenUrl: {}", clientId, tokenUrl);
+        log.debug("Keycloak Config - clientSecret length: {}", clientSecret != null ? clientSecret.length() : 0);
+
         // 1. Chuẩn bị dữ liệu gửi sang Keycloak
         MultiValueMap<String, String> params = new LinkedMultiValueMap<>();
         params.add("client_id", clientId);

@@ -158,7 +158,6 @@ public class ProfileService {
         if (request.idNumber() != null) {
             String normalizedIdNumber = normalizeIdNumber(request.idNumber());
             profile.setIdNumber(normalizedIdNumber);
-            user.setPassword(passwordEncoder.encode(normalizedIdNumber));
         }
         if (request.gender() != null) profile.setGender(request.gender());
         if (request.nationality() != null) profile.setNationality(request.nationality());

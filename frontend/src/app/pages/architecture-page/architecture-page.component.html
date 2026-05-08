@@ -1,0 +1,99 @@
+<div class="architecture-portal-wrapper">
+  <!-- Header Section -->
+  <header class="page-header animate-fade-in">
+    <div class="header-content">
+      <span class="eyebrow">Technical Grimoire</span>
+      <h2 class="title-glow">Kiến Trúc Hệ Thống</h2>
+      <p class="subtitle">Khám phá các tầng cấu trúc xây dựng nên vương quốc ngôn từ</p>
+    </div>
+  </header>
+
+  <section class="architecture-list">
+    <!-- Mỗi Section là một thực thể kiến trúc -->
+    @for (section of sections; track section.title; let i = $index) {
+    <section class="glass-card section-container animate-slide-up">
+      <div class="section-badge">Module #0{{i + 1}}</div>
+
+      <div class="section-main-header">
+        <p class="eyebrow-accent">{{ section.title }}</p>
+        <h3 class="section-summary">{{ section.summary }}</h3>
+      </div>
+
+      <div class="knowledge-grid">
+        <!-- Phần nội dung Copy -->
+        <div class="knowledge-copy">
+          <article class="info-block" [attr.data-type]="'content'">
+            <div class="block-header">
+              <span class="material-icons info-icon-glow">auto_stories</span>
+              <strong>Nội dung chính</strong>
+            </div>
+            <ul class="fancy-list">
+              @for (bullet of section.bullets; track bullet) {
+              <li>
+                <span class="li-dot"></span>
+                {{ bullet }}
+              </li>
+              }
+            </ul>
+          </article>
+
+          <article class="info-block" [attr.data-type]="'api'">
+            <div class="block-header">
+              <span class="material-icons info-icon-glow">integration_instructions</span>
+              <strong>Built-in API / Điểm tích hợp</strong>
+            </div>
+            <ul class="fancy-list">
+              @for (note of section.apiNotes; track note) {
+              <li>
+                <span class="li-dot"></span>
+                {{ note }}
+              </li>
+              }
+            </ul>
+          </article>
+
+          <article class="info-block" [attr.data-type]="'sample'">
+            <div class="block-header">
+              <span class="material-icons info-icon-glow">code</span>
+              <strong>Ghi chú Sample Code</strong>
+            </div>
+            <ul class="fancy-list">
+              @for (note of section.sampleNotes; track note) {
+              <li>
+                <span class="li-dot"></span>
+                {{ note }}
+              </li>
+              }
+            </ul>
+          </article>
+        </div>
+
+        <!-- Phần Diagram -->
+        <div class="diagram-canvas">
+          <div class="diagram-overlay-grid"></div>
+
+          @for (lane of section.diagram; track lane.label) {
+          <div class="lane-container">
+            <div class="lane-label-box">
+              <span class="lane-label">{{ lane.label }}</span>
+            </div>
+
+            <div class="lane-track">
+              @for (node of lane.nodes; track node.title) {
+              <article class="node-card">
+                <div class="node-border-glow"></div>
+                <div class="node-content">
+                  <strong class="node-title">{{ node.title }}</strong>
+                  <span class="node-subtitle">{{ node.subtitle }}</span>
+                </div>
+              </article>
+              }
+            </div>
+          </div>
+          }
+        </div>
+      </div>
+    </section>
+    }
+  </section>
+</div>
